@@ -29,7 +29,9 @@ python run.py
 - `log_dir`,type=str,default='./log/', 'directory of the transaction logs.'
 
 
-The configuration file is in `./model/Config.py`
+The configuration file is in `./model/Config.py`, you can change the parameters there.
+
+To get the forecasting result,
 please run:
 ```shell
 'python run.py '
