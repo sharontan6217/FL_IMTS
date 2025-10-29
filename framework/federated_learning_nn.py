@@ -7,7 +7,8 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import auc,f1_score,accuracy_score,mean_absolute_error,mean_squared_error
 from sklearn.model_selection import train_test_split
 import model
-from model import brnn 
+from model import brnn, Config
+from model.Config import brnn_config,fl_config
 from model.brnn import neuralNetwork
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -20,14 +21,9 @@ import sys, asyncio
 if sys.platform == "win32" and (3, 8, 0) <= sys.version_info < (3, 9, 0):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+fl_config = fl_config()
+brnn_config = brnn_config()
 
-NUM_ROUNDS =800
-batch_size=128
-drop_out=0.1
-patience=5
-gru_units=200
-dense_units=10
-input_shape=(None,1)
 gc.collect()
 
 # Simulate client data (e.g., each client gets a subset)
@@ -42,7 +38,7 @@ def create_tf_dataset_for_client(x, y, num_clients):
         start_index = i * data_per_client
         end_index = (i + 1) * data_per_client
         print(start_index,end_index)
-        client_data.append(tf.data.Dataset.from_tensor_slices((x[start_index:end_index], y[start_index:end_index])).batch(batch_size))
+        client_data.append(tf.data.Dataset.from_tensor_slices((x[start_index:end_index], y[start_index:end_index])).batch(fl_config.batch_size))
     return client_data
 '''
 def create_tf_dataset_for_client(x, y):
@@ -68,7 +64,7 @@ def create_tf_dataset_for_client(x, y):
     for i in range(x.shape[1]):        
         start_index = i * data_per_client
         end_index = (i + 1) * data_per_client
-        client_data.append(tf.data.Dataset.from_tensor_slices((x_[start_index:end_index], y_[start_index:end_index])).batch(batch_size))
+        client_data.append(tf.data.Dataset.from_tensor_slices((x_[start_index:end_index], y_[start_index:end_index])).batch(fl_config.batch_size))
     return client_data
 
 
@@ -83,7 +79,7 @@ def dataProcess(x_train,y_train,x_test,y_test):
 
 # 2. TFF Components
 def model_fn():
-    keras_model = neuralNetwork.myBiRNN(gru_units=gru_units,drop_out=drop_out,input_shape=input_shape)
+    keras_model = neuralNetwork.myBiRNN(gru_units=brnn_config.gru_units,drop_out=brnn_config.drop_out,input_shape=brnn_config.input_shape)
     return  tff.learning.from_keras_model(
         keras_model,
         input_spec=client_datasets[0].element_spec,
@@ -97,14 +93,14 @@ def train(client_datasets):
     #model_weights,iterative_process = model_fn(model_predict,client_datasets)
     iterative_process = tff.learning.build_federated_averaging_process(
         model_fn,
-        client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=5e-5))
+        client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=fl_config.learning_rate))
     # 3. Iterative Training
     state = iterative_process.initialize()
 
     loss=[]
     mae = []
-    for round_num in range(NUM_ROUNDS):
-        print(f'Round {round_num + 1}/{NUM_ROUNDS}')
+    for round_num in range(fl_config.NUM_ROUNDS):
+        print(f'Round {round_num + 1}/{fl_config.NUM_ROUNDS}')
         
         # Select clients for this round (e.g., all clients in a simulation)
         selected_client_data = [client_datasets[i] for i in range(NUM_CLIENTS)]
@@ -123,14 +119,14 @@ def eval(test_datasets,state,metrics):
     eval_process = tff.learning.build_federated_evaluation(model_fn)
     test_metrics = eval_process(state.model, selected_test_data)
     print(f'metrics: {test_metrics}')
-    model_predict = neuralNetwork.myBiRNN(gru_units=gru_units,drop_out=drop_out,input_shape=input_shape)
+    model_predict = neuralNetwork.myBiRNN(gru_units=brnn_config.gru_units,drop_out=brnn_config.drop_out,input_shape=brnn_config.input_shape)
     model_predict.compile(
             loss=tf.keras.losses.MeanSquaredError(),
             metrics=[tf.keras.metrics.MeanAbsoluteError()]
     )
     state.model.assign_weights_to(model_predict)
     return model_predict,test_metrics
-def fl_visualize(loss,mae,timeSequence,start,fl_graph_dir):
+def fl_visualize(loss,mae,timeSequence,start,opt):
     # First, some preprocessing to smooth the training and testing arrays for display.
     window_length = 100
     train_mse = np.r_[
@@ -146,7 +142,6 @@ def fl_visualize(loss,mae,timeSequence,start,fl_graph_dir):
     #w = np.hamming(window_length)
     #train_y = np.convolve(w / w.sum(), train_s, mode="valid")
     #test_y = np.convolve(w / w.sum(), test_s, mode="valid")
-
     # Display the training accuracies.
     fig,ax1=plt.subplots()
     x = np.arange(0, len(train_mse), 1)
@@ -163,7 +158,7 @@ def fl_visualize(loss,mae,timeSequence,start,fl_graph_dir):
     plt.grid()
     #plt.title('Plot Graph of Loss/Accuracy')
     fig_name='fl_birnn_loss_'+timeSequence+'_'+str(start)+'.png'
-    plt.savefig(fl_graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+'/accuracy/'+fig_name)
     plt.close()
 
 

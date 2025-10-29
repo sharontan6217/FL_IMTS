@@ -11,34 +11,29 @@ from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score,roc_
 from sklearn.model_selection import train_test_split 
 from sklearn.model_selection import train_test_split
 import utils
-from utils import fl_convertion
+from utils.utils import fl_convertion
 import model
-from model import brnn
-from model.brnn import neuralNetwork
-import keras
-import math
-import argparse
-import datetime
-import random
-import time
+from model import brnn, Config
+from model.Config import brnn_config,fl_config
 import matplotlib.pyplot as plt
+import random
 from framework import federated_learning_nn
 import gc
 
 #scaler = StandardScaler()
 scaler = MinMaxScaler()
 
+fl_config = fl_config()
 
-
-def brnn_impute(x,y,opt):
+def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
     gc.collect()
-    trainSize = opt.trainSize
-    testSize = opt.testSize
-    predictSize = opt.predictSize
+    trainSize = fl_config.trainSize
+    testSize = fl_config.testSize
+    predictSize = fl_config.predictSize
     graph_dir = opt.graph_dir
+    
 
-
-    x_estimate = impute(x,imputed_value=-1)
+    x_estimate = imputate(x,imputated_value=-1)
     estimate = np.array(x_estimate)
     #estimate = x_estimate
     print(x)
@@ -95,7 +90,7 @@ def brnn_impute(x,y,opt):
         print('-------------------start imputation-------------------')
         client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train_,y_train_,x_test_,y_test_)
         state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
-        model_impute,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
+        model_imputate,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
         fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
         print(len(estimate),len(missing))
         missing = np.array(missing)
@@ -107,7 +102,7 @@ def brnn_impute(x,y,opt):
                 
                     print(i,missing[i][j])
                     diff=[]
-                    imputed_value=[]
+                    imputated_value=[]
                     if i<8:
                         missing[i][j]=estimate[i][j]
                     else:
@@ -115,53 +110,52 @@ def brnn_impute(x,y,opt):
                             pseudo_x_ = missing[:i-1]
                             length = len(pseudo_x_)
                             x_train_fl_ = fl_convertion(pseudo_x_).astype(np.float32)    
-                            pseudo_y_ = model_impute.predict(x_train_fl_).astype(np.float32) # Generate pseudo-labels
+                            pseudo_y_ = model_imputate.predict(x_train_fl_).astype(np.float32) # Generate pseudo-labels
                             df_predict = pd.DataFrame()
-                            df_predict['P4']=np.array(pseudo_y_ ).reshape(-1,)[:length]
-                            df_predict['Cz']=np.array(pseudo_y_ ).reshape(-1,)[length:length*2]
-                            df_predict['F8']=np.array(pseudo_y_ ).reshape(-1,)[length*2:length*3]
-                            df_predict['T7']=np.array(pseudo_y_ ).reshape(-1,)[length*3:]
+                            for n in range(len(cols_orig)-1):
+                                print(cols_orig[n])
+                                df_predict[cols_orig]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
                             missing_value=df_predict.values[-1][j]
                             diff_ = abs(estimate[i][j]-missing_value)      
                             diff.append(diff_)
-                            imputed_value.append(missing_value)
-                        with open ('impute.txt','a') as f:
-                            f.write(str(imputed_value))
+                            imputated_value.append(missing_value)
+                        with open ('imputate.txt','a') as f:
+                            f.write(str(imputated_value))
                             f.close()
                         with open ('diff.txt','a') as f:
                             f.write(str(diff))
                             f.close()
-                        missing[i][j] = imputed_value[np.argmin(diff)]
+                        missing[i][j] = imputated_value[np.argmin(diff)]
                     print(i,missing[i][j])
-        del model_impute
+        del model_imputate
     x_train = missing[:trainSize].astype(np.float32)
     y_train = missing[1:trainSize+1].astype(np.float32)
     x_test = missing[trainSize:trainSize+testSize].astype(np.float32)
     y_test = missing[trainSize+1:trainSize+testSize+1].astype(np.float32)
     y_actual = y_actual_.astype(np.float32)
     print(len(x_train),len(y_train),len(x_test),len(y_test),len(y_actual))
-    x_impute = missing
-    print(x_impute)
-    df_impute = pd.DataFrame(data=missing)
-    df_impute.to_csv('impute.csv')
+    x_imputate = missing
+    print(x_imputate)
+    df_imputate = pd.DataFrame(data=missing)
+    df_imputate.to_csv('imputate.csv')
     
     
 
-    return x_train,y_train,x_test,y_test,y_actual,x_impute
-def impute(df,imputed_value):
+    return x_train,y_train,x_test,y_test,y_actual,x_imputate
+def imputate(df,imputated_value):
     if 'index' in df.columns:
         df = df.drop(('index'),axis=1)
     df = df.reset_index()
     for col in df.columns:
         for i in range(len(df)):
             try:
-                if df.loc[i,col]==imputed_value:
-                    if df.loc[i-1,col]!=imputed_value and df.loc[i+1,col]!=imputed_value:
-                        matrix_before =  [item for item in df.loc[:i-1,col] if item !=imputed_value ][-3:]
-                        matrix_after =  [item for item in df.loc[i+1:,col] if item !=imputed_value ][:3]
+                if df.loc[i,col]==imputated_value:
+                    if df.loc[i-1,col]!=imputated_value and df.loc[i+1,col]!=imputated_value:
+                        matrix_before =  [item for item in df.loc[:i-1,col] if item !=imputated_value ][-3:]
+                        matrix_after =  [item for item in df.loc[i+1:,col] if item !=imputated_value ][:3]
                         df.loc[i,col] = 0.8*np.mean(matrix_before)+1.2*np.mean(matrix_after)
                     else:
-                        estimate_matrix = [item for item in df.loc[max(0,i-1):,col] if item!=imputed_value ][:7]
+                        estimate_matrix = [item for item in df.loc[max(0,i-1):,col] if item!=imputated_value ][:7]
                         df.loc[i,col]  =np.mean(estimate_matrix)     
                 else:
                     continue

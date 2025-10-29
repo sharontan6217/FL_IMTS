@@ -11,8 +11,6 @@ from sklearn.metrics import auc,f1_score,accuracy_score,mean_absolute_error,mean
 from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score,roc_curve, precision_recall_curve,auc, f1_score,silhouette_score,normalized_mutual_info_score, adjusted_rand_score
 from sklearn.model_selection import train_test_split 
 from sklearn.model_selection import train_test_split
-import data
-from data import airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad
 import model
 from model import brnn
 from model.brnn import neuralNetwork
@@ -24,13 +22,18 @@ import random
 import time
 import matplotlib.pyplot as plt
 from framework import federated_learning_nn
+from model.Config import brnn_config,fl_config
 import gc
 
 #scaler = StandardScaler()
 scaler = MinMaxScaler()
+fl_config = fl_config()
+brnn_config = brnn_config()
+trainSize = fl_config.trainSize
+testSize = fl_config.testSize
+predictSize = fl_config.predictSize
 
-
-def visualize(actual,predict):
+def visualize(actual,predict,timeSequence,start,opt):
     
     predict_0=predict[:predictSize]
     predict_1=predict[predictSize:predictSize*2]
@@ -49,7 +52,7 @@ def visualize(actual,predict):
     plt.title('Plot Graph of Actual and Predicted EEG-P4')
     plt.legend(loc='best')
     fig_name='test_scenario_P4'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+fig_name)
     plt.close()      
     fig=plt.figure(2)
     plt.plot(actual_1,color='blue',label='Actual')
@@ -59,7 +62,7 @@ def visualize(actual,predict):
     plt.title('Plot Graph of Actual and Predicted EEG-Cz')
     plt.legend(loc='best')
     fig_name='test_scenario_Cz'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+fig_name)
     plt.close() 
     fig=plt.figure(3)
     plt.plot(actual_2,color='blue',label='Actual')
@@ -69,7 +72,7 @@ def visualize(actual,predict):
     plt.title('Plot Graph of Actual and Predicted EEG-F8')
     plt.legend(loc='best')
     fig_name='test_scenario_F8'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+fig_name)
     plt.close() 
     fig=plt.figure(4)
     plt.plot(actual_3,color='blue',label='Actual')
@@ -79,7 +82,7 @@ def visualize(actual,predict):
     plt.title('Plot Graph of Actual and Predicted EEG-T7')
     plt.legend(loc='best')
     fig_name='test_scenario_T7'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+fig_name)
     plt.close() 
     fig=plt.figure(0)
     plt.plot(actual_0,color='blue',label='P4_Actual')
@@ -94,13 +97,13 @@ def visualize(actual,predict):
     plt.ylabel('Values')
     plt.legend(bbox_to_anchor=(0.5,1.15),fontsize='xx-small',ncol=4,loc='upper center')
     fig_name='test_scenario_all'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+fig_name)
     plt.close()  
     return fig
-def output(actual,predict):
+def output(actual,predict,timeSequence,start,opt):
     df_result_actual=pd.DataFrame(data=actual)
     df_result_predict=pd.DataFrame(data=predict)
     df_result = pd.concat((df_result_actual,df_result_predict),axis=1)
     output_name = 'output_'+timeSequence+'_'+str(start)+'.csv'
-    df_result.to_csv(output_dir+output_name)
+    df_result.to_csv(opt.output_dir+output_name)
     return df_result

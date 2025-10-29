@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score,roc_
 from sklearn.model_selection import train_test_split 
 from sklearn.model_selection import train_test_split
 import utils
-from utils import fl_convertion
+from utils.utils import fl_convertion
 import model
 from model import brnn
 from model.brnn import neuralNetwork
@@ -22,17 +22,21 @@ import datetime
 import random
 import time
 import matplotlib.pyplot as plt
+from model.Config import brnn_config,fl_config
 from framework import federated_learning_nn
 import gc
 
 
 scaler = MinMaxScaler()
+fl_config = fl_config()
+brnn_config = brnn_config()
+trainSize = fl_config.trainSize
+testSize = fl_config.testSize
+predictSize = fl_config.predictSize
 
 
 
-
-
-def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
+def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,timeSequence,start,opt):
     gc.collect()
     len_cols = len(cols_orig)
 
@@ -47,8 +51,8 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
     x_test=scaler_x.transform(x_test)
     #y_actual=scaler.transform(y_actual)
 
-    #x_impute = scaler.transform(x_impute)
-    #x_actual = x_impute[trainSize:trainSize+testSize]
+    #x_imputate = scaler.transform(x_imputate)
+    #x_actual = x_imputate[trainSize:trainSize+testSize]
     #x_actual = scaler.transform(x_actual)
     #x_train=np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
     #x_test=np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
@@ -56,7 +60,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
     client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
     state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
     model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
-    fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,graph_dir)
+    fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,opt)
     x_test_fl = fl_convertion(x_test)
 
     
@@ -83,17 +87,16 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
             y_predict_fl = y_predict_fl.astype(np.float32)
 
         df_predict = pd.DataFrame()
-        df_predict['P4']=np.array(y_predict_fl).reshape(-1,)[:testSize]
-        df_predict['Cz']=np.array(y_predict_fl).reshape(-1,)[testSize:testSize*2]
-        df_predict['F8']=np.array(y_predict_fl).reshape(-1,)[testSize*2:testSize*3]
-        df_predict['T7']=np.array(y_predict_fl).reshape(-1,)[testSize*3:]
+        for i in range(len(cols_orig)-1):
+            col_name = cols_orig[i]
+            df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*i:testSize*(i+1)]
         print(df_predict)
         x_new=df_predict.values[-1:].reshape(1,-1)
         #x_new=df_predict.values[min(0,-j-1):]
         #x_new = np.reshape(np.array(x_new),((j+1),len_cols))
         print(x_new)
 
-        x_actual1 = x_impute[trainSize+j+1:trainSize+testSize+j]
+        x_actual1 = x_imputate[trainSize+j+1:trainSize+testSize+j]
         print(x_actual1)
         #print(x_actual1.shape)
 
@@ -109,10 +112,10 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
         j=j+1
     print(len(y_predict_fl))
     df_predict = pd.DataFrame()
-    df_predict['P4']=np.array(y_predict_fl).reshape(-1,)[:testSize]
-    df_predict['Cz']=np.array(y_predict_fl).reshape(-1,)[testSize:testSize*2]
-    df_predict['F8']=np.array(y_predict_fl).reshape(-1,)[testSize*2:testSize*3]
-    df_predict['T7']=np.array(y_predict_fl).reshape(-1,)[testSize*3:]
+    for i in range(len(cols_orig)-1):
+        col_name = cols_orig[i]
+        df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*i:testSize*(i+1)]
+
 
     '''
     for i in range(y_actual.shape[1]):
@@ -133,7 +136,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
     print('prediction is: ')
     print(y_predict)
     del x_new
-    #scale_y= scaler.fit(y_impute)
+    #scale_y= scaler.fit(y_imputate)
     #y_actual = scale_y.transform(y_actual)
     #y_predict = scale_y.transform(y_predict)
     
@@ -142,7 +145,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute):
     return y_predict, y_actual
 
 
-def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual):
+def FL_train_predict_window(x,y,x_train,y_train,x_test,y_test,y_actual,start):
     
     x_train=scaler.fit_transform(x_train).astype(np.float32)
     x_test=scaler.transform(x_test).astype(np.float32)
@@ -192,7 +195,7 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual):
     #del x_new
     print('start is: ',start)
     return y_predict, y_actual
-def train(model_predict,x_train,y_train,x_test,y_test,y_actual):
+def train(model_predict,x,x_train,y_train,x_test,y_test,y_actual,start):
 
     #data load
     print("#data load:")
@@ -215,9 +218,9 @@ def train(model_predict,x_train,y_train,x_test,y_test,y_actual):
     for j in range(predictSize):
         print(j)
         if j == 0:
-            loss_history=model_predict.fit(x_train,y_train,batch_size=batch_size,epochs=epochs,verbose=2, validation_data=[x_test,y_test])            
+            loss_history=model_predict.fit(x_train,y_train,batch_size=brnn_config.batch_size,epochs=brnn_config.epochs,verbose=2, validation_data=[x_test,y_test])            
         else:
-            loss_history=model_predict.fit(x_train,y_train,batch_size=batch_size,epochs=epochs,verbose=2, validation_data=[x_actual,y_predict]) 
+            loss_history=model_predict.fit(x_train,y_train,batch_size=brnn_config.batch_size,epochs=brnn_config.epochs,verbose=2, validation_data=[x_actual,y_predict]) 
         x_new=y_predict[-1].reshape(-1,1)
         x_actual1 = x[-start+trainSize:-start+trainSize+testSize+j]
         x_actual = np.append(x_actual1,x_new,axis=0)
