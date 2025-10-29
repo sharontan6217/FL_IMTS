@@ -14,12 +14,6 @@ import model
 from model import brnn
 from model.brnn import neuralNetwork
 
-import keras
-import math
-import argparse
-import datetime
-import random
-import time
 import matplotlib.pyplot as plt
 from framework import federated_learning_nn
 import gc

@@ -34,8 +34,6 @@ def get_parser():
     parser.add_argument('--graph_dir',type=str,default='./graph/eeg/', help = 'directory of graphs' )
     parser.add_argument('--output_dir',type=str,default='./output/eeg/', help = 'directory of outputs')
     parser.add_argument('--log_dir',type=str,default='./log/eeg/', help = 'directory of the transaction logs.' )
-    parser.add_argument('--with_metalearning',type=bool,default=False, help = 'Defult to be False, True if adding meta-learning method.' )
-    parser.add_argument('--metalearning_name',type=str,default='None', help = 'learning method is one of the list ["None", "reptile","MAML"], reptile for gradient decent algorithms and Model Agonistic Meta Learning (MAML) for ML and DL algorithms' )
     opt = parser.parse_args()
     return opt
 
