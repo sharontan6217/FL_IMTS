@@ -126,7 +126,7 @@ def eval(test_datasets,state,metrics):
     )
     state.model.assign_weights_to(model_predict)
     return model_predict,test_metrics
-def fl_visualize(loss,mae,timeSequence,start,opt):
+def fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir):
     # First, some preprocessing to smooth the training and testing arrays for display.
     window_length = 100
     train_mse = np.r_[
@@ -157,8 +157,9 @@ def fl_visualize(loss,mae,timeSequence,start,opt):
     fig.tight_layout()
     plt.grid()
     #plt.title('Plot Graph of Loss/Accuracy')
+
     fig_name='fl_birnn_loss_'+timeSequence+'_'+str(start)+'.png'
-    plt.savefig(opt.graph_dir+'/accuracy/'+fig_name)
+    plt.savefig(brnn_graph_dir+fig_name)
     plt.close()
 
 

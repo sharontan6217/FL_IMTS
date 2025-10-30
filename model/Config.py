@@ -1,9 +1,4 @@
-import os
-import torch
-import time
-import numpy as np
-import keras
-from keras.regularizers import L1L2
+
 import ml_collections
 
 def brnn_config():
@@ -12,7 +7,8 @@ def brnn_config():
     config.dense_units = 10
     config.tol = 1e-5
     config.drop_out=0.1
-    config.reg= L1L2(l1=0.2, l2=0.2)
+    config.l1= 0.2
+    config.l2 = 0.2
     config.activation='tanh'
     config.recurrent_activation='relu'
     config.patience=5
@@ -22,11 +18,11 @@ def brnn_config():
     return config
 def fl_config():
     config = ml_collections.ConfigDict()
-    config.poolSize = 7000
-    config.trainSize = 5000
-    config.testSize = 1000
-    config.predictSize = 100
-    config.NUM_ROUNDS =800
+    config.poolSize = 700
+    config.trainSize = 500
+    config.testSize = 100
+    config.predictSize = 10
+    config.NUM_ROUNDS =8
     config.batch_size=128
     config.learning_rate=5e-5
     return config

@@ -56,11 +56,14 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
     #x_actual = scaler.transform(x_actual)
     #x_train=np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
     #x_test=np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
-
+    graph_dir = opt.graph_dir
+    brnn_graph_dir=graph_dir+'accuracy/'
+    if os.path.exists(brnn_graph_dir)==False:
+        os.makedirs(brnn_graph_dir)
     client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
     state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
     model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
-    fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,opt)
+    fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
     x_test_fl = fl_convertion(x_test)
 
     
@@ -87,10 +90,15 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
             y_predict_fl = y_predict_fl.astype(np.float32)
 
         df_predict = pd.DataFrame()
-        for i in range(len(cols_orig)-1):
-            col_name = cols_orig[i]
-            df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*i:testSize*(i+1)]
-        print(df_predict)
+
+        for n in range(len(cols_orig)):
+            #print(cols_orig[n])
+            col_name = cols_orig[n]
+            if n==0:
+                df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[:testSize]
+            else:
+                df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*n:testSize*(n+1)]
+        #print(df_predict)
         x_new=df_predict.values[-1:].reshape(1,-1)
         #x_new=df_predict.values[min(0,-j-1):]
         #x_new = np.reshape(np.array(x_new),((j+1),len_cols))
@@ -112,10 +120,13 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
         j=j+1
     print(len(y_predict_fl))
     df_predict = pd.DataFrame()
-    for i in range(len(cols_orig)-1):
-        col_name = cols_orig[i]
-        df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*i:testSize*(i+1)]
-
+    for n in range(len(cols_orig)):
+        print(cols_orig[n])
+        col_name = cols_orig[n]
+        if n==0:
+            df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[:testSize]
+        else:
+            df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*n:testSize*(n+1)]
 
     '''
     for i in range(y_actual.shape[1]):
@@ -126,7 +137,6 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
             df_predict[i]=np.array(y_predict_fl).reshape(-1,)[i*testSize:testSize*(i+1)-1]
     '''
     print(len(df_predict))
-    print(df_predict)
     y_predict = df_predict.values
     y_predict = y_predict[-predictSize:]
     print(len(y_predict))

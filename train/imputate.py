@@ -82,7 +82,7 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
     print(y_actual_)
     if 'index' in x.columns:
         x = x.drop(('index'),axis=1)
-    brnn_graph_dir=graph_dir+'accuracy'
+    brnn_graph_dir=graph_dir+'accuracy/'
     if os.path.exists(brnn_graph_dir)==False:
         os.makedirs(brnn_graph_dir)
     missing.to_csv('missing.csv')
@@ -112,9 +112,15 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                             x_train_fl_ = fl_convertion(pseudo_x_).astype(np.float32)    
                             pseudo_y_ = model_imputate.predict(x_train_fl_).astype(np.float32) # Generate pseudo-labels
                             df_predict = pd.DataFrame()
-                            for n in range(len(cols_orig)-1):
-                                print(cols_orig[n])
-                                df_predict[cols_orig]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
+                            #print(len(cols_orig))
+                            for n in range(len(cols_orig)):
+                                #print(cols_orig[n])
+                                col_name = cols_orig[n]
+                                if n==0:
+                                    df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[:length]
+                                else:
+                                    df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
+                            #print(df_predict)
                             missing_value=df_predict.values[-1][j]
                             diff_ = abs(estimate[i][j]-missing_value)      
                             diff.append(diff_)

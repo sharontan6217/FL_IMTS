@@ -34,6 +34,8 @@ def get_parser():
     parser.add_argument('--graph_dir',type=str,default='./graph/eeg/', help = 'directory of graphs' )
     parser.add_argument('--output_dir',type=str,default='./output/eeg/', help = 'directory of outputs')
     parser.add_argument('--log_dir',type=str,default='./log/eeg/', help = 'directory of the transaction logs.' )
+    parser.add_argument('--with_metalearning',type=bool,default=False, help = 'Defult to be False, True if adding meta-learning method.' )
+    parser.add_argument('--metalearning_name',type=str,default='None', help = 'learning method is one of the list ["None", "reptile","MAML"], reptile for gradient decent algorithms and Model Agonistic Meta Learning (MAML) for ML and DL algorithms' )
     opt = parser.parse_args()
     return opt
 
@@ -83,10 +85,10 @@ if __name__=='__main__':
     print(y_actual)
     print('prediction is: ')
     print(y_predict)
-    f1score,accuracy,mse,mae = eval.evaluation(y_actual_fl,y_predict_fl,opt)
+    f1score,accuracy,mse,mae = eval.evaluation.evaluation(y_actual_fl,y_predict_fl,opt)
     print(f1score,accuracy,mse,mae )
     #fig = visualize(x_actual_,x_predict_)
-    fig = eval.visualize(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
+    fig = eval.visualize.visualize(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
     df_result = eval.visualize.output(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
     #df_result = output(y_actual_fl,y_predict_fl)
 
