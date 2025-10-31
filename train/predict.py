@@ -28,11 +28,11 @@ import gc
 
 
 scaler = MinMaxScaler()
-fl_config = fl_config()
-brnn_config = brnn_config()
-trainSize = fl_config.trainSize
-testSize = fl_config.testSize
-predictSize = fl_config.predictSize
+config = fl_config()
+model_config = brnn_config()
+trainSize = config.trainSize
+testSize = config.testSize
+predictSize = config.predictSize
 
 
 
@@ -43,8 +43,8 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
 
     scaler_y=scaler.fit(y_train)
     y_train = scaler_y.transform(y_train)
-    y_test=scaler.transform(y_test)
-    y_actual=scaler.transform(y_actual)
+    y_test=scaler_y.transform(y_test)
+    y_actual=scaler_y.transform(y_actual)
     
     scaler_x = scaler.fit(x_train)
     x_train=scaler_x.transform(x_train)
@@ -90,7 +90,12 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
             y_predict_fl = y_predict_fl.astype(np.float32)
 
         df_predict = pd.DataFrame()
-
+        '''
+        df_predict['P4']=np.array(y_predict_fl).reshape(-1,)[:testSize]
+        df_predict['Cz']=np.array(y_predict_fl).reshape(-1,)[testSize:testSize*2]
+        df_predict['F8']=np.array(y_predict_fl).reshape(-1,)[testSize*2:testSize*3]
+        df_predict['T7']=np.array(y_predict_fl).reshape(-1,)[testSize*3:]
+        '''
         for n in range(len(cols_orig)):
             #print(cols_orig[n])
             col_name = cols_orig[n]
@@ -98,7 +103,8 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
                 df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[:testSize]
             else:
                 df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*n:testSize*(n+1)]
-        #print(df_predict)
+
+        print(df_predict)
         x_new=df_predict.values[-1:].reshape(1,-1)
         #x_new=df_predict.values[min(0,-j-1):]
         #x_new = np.reshape(np.array(x_new),((j+1),len_cols))
@@ -120,6 +126,12 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
         j=j+1
     print(len(y_predict_fl))
     df_predict = pd.DataFrame()
+    '''
+    df_predict['P4']=np.array(y_predict_fl).reshape(-1,)[:testSize]
+    df_predict['Cz']=np.array(y_predict_fl).reshape(-1,)[testSize:testSize*2]
+    df_predict['F8']=np.array(y_predict_fl).reshape(-1,)[testSize*2:testSize*3]
+    df_predict['T7']=np.array(y_predict_fl).reshape(-1,)[testSize*3:]
+    '''
     for n in range(len(cols_orig)):
         print(cols_orig[n])
         col_name = cols_orig[n]
@@ -128,15 +140,9 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
         else:
             df_predict[col_name]=np.array(y_predict_fl).reshape(-1,)[testSize*n:testSize*(n+1)]
 
-    '''
-    for i in range(y_actual.shape[1]):
-        if i==0:
-            df_predict[i]=np.array(y_predict_fl).reshape(-1,)[:testSize-1]
-            print(df_predict[i])
-        else:
-            df_predict[i]=np.array(y_predict_fl).reshape(-1,)[i*testSize:testSize*(i+1)-1]
-    '''
+
     print(len(df_predict))
+    print(df_predict)
     y_predict = df_predict.values
     y_predict = y_predict[-predictSize:]
     print(len(y_predict))
@@ -228,9 +234,9 @@ def train(model_predict,x,x_train,y_train,x_test,y_test,y_actual,start):
     for j in range(predictSize):
         print(j)
         if j == 0:
-            loss_history=model_predict.fit(x_train,y_train,batch_size=brnn_config.batch_size,epochs=brnn_config.epochs,verbose=2, validation_data=[x_test,y_test])            
+            loss_history=model_predict.fit(x_train,y_train,batch_size=model_config.batch_size,epochs=model_config.epochs,verbose=2, validation_data=[x_test,y_test])            
         else:
-            loss_history=model_predict.fit(x_train,y_train,batch_size=brnn_config.batch_size,epochs=brnn_config.epochs,verbose=2, validation_data=[x_actual,y_predict]) 
+            loss_history=model_predict.fit(x_train,y_train,batch_size=model_config.batch_size,epochs=model_config.epochs,verbose=2, validation_data=[x_actual,y_predict]) 
         x_new=y_predict[-1].reshape(-1,1)
         x_actual1 = x[-start+trainSize:-start+trainSize+testSize+j]
         x_actual = np.append(x_actual1,x_new,axis=0)

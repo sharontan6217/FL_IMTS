@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import auc,f1_score,accuracy_score,mean_absolute_error,mean_squared_error
 from sklearn.model_selection import train_test_split
 import model
-from model import brnn, Config
+from model import Config, brnn
 from model.Config import brnn_config,fl_config
 from model.brnn import neuralNetwork
 import matplotlib.pyplot as plt
@@ -21,8 +21,11 @@ import sys, asyncio
 if sys.platform == "win32" and (3, 8, 0) <= sys.version_info < (3, 9, 0):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-fl_config = fl_config()
-brnn_config = brnn_config()
+config = fl_config()
+
+model_config = brnn_config()
+
+
 
 gc.collect()
 
@@ -38,7 +41,7 @@ def create_tf_dataset_for_client(x, y, num_clients):
         start_index = i * data_per_client
         end_index = (i + 1) * data_per_client
         print(start_index,end_index)
-        client_data.append(tf.data.Dataset.from_tensor_slices((x[start_index:end_index], y[start_index:end_index])).batch(fl_config.batch_size))
+        client_data.append(tf.data.Dataset.from_tensor_slices((x[start_index:end_index], y[start_index:end_index])).batch(config.batch_size))
     return client_data
 '''
 def create_tf_dataset_for_client(x, y):
@@ -64,7 +67,7 @@ def create_tf_dataset_for_client(x, y):
     for i in range(x.shape[1]):        
         start_index = i * data_per_client
         end_index = (i + 1) * data_per_client
-        client_data.append(tf.data.Dataset.from_tensor_slices((x_[start_index:end_index], y_[start_index:end_index])).batch(fl_config.batch_size))
+        client_data.append(tf.data.Dataset.from_tensor_slices((x_[start_index:end_index], y_[start_index:end_index])).batch(config.batch_size))
     return client_data
 
 
@@ -79,7 +82,7 @@ def dataProcess(x_train,y_train,x_test,y_test):
 
 # 2. TFF Components
 def model_fn():
-    keras_model = neuralNetwork.myBiRNN(gru_units=brnn_config.gru_units,drop_out=brnn_config.drop_out,input_shape=brnn_config.input_shape)
+    keras_model = neuralNetwork.myBiRNN(gru_units=model_config.gru_units,drop_out=model_config.drop_out,input_shape=model_config.input_shape)
     return  tff.learning.from_keras_model(
         keras_model,
         input_spec=client_datasets[0].element_spec,
@@ -93,14 +96,14 @@ def train(client_datasets):
     #model_weights,iterative_process = model_fn(model_predict,client_datasets)
     iterative_process = tff.learning.build_federated_averaging_process(
         model_fn,
-        client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=fl_config.learning_rate))
+        client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=config.learning_rate))
     # 3. Iterative Training
     state = iterative_process.initialize()
 
     loss=[]
     mae = []
-    for round_num in range(fl_config.NUM_ROUNDS):
-        print(f'Round {round_num + 1}/{fl_config.NUM_ROUNDS}')
+    for round_num in range(config.NUM_ROUNDS):
+        print(f'Round {round_num + 1}/{config.NUM_ROUNDS}')
         
         # Select clients for this round (e.g., all clients in a simulation)
         selected_client_data = [client_datasets[i] for i in range(NUM_CLIENTS)]
@@ -119,7 +122,7 @@ def eval(test_datasets,state,metrics):
     eval_process = tff.learning.build_federated_evaluation(model_fn)
     test_metrics = eval_process(state.model, selected_test_data)
     print(f'metrics: {test_metrics}')
-    model_predict = neuralNetwork.myBiRNN(gru_units=brnn_config.gru_units,drop_out=brnn_config.drop_out,input_shape=brnn_config.input_shape)
+    model_predict = neuralNetwork.myBiRNN(gru_units=model_config.gru_units,drop_out=model_config.drop_out,input_shape=model_config.input_shape)
     model_predict.compile(
             loss=tf.keras.losses.MeanSquaredError(),
             metrics=[tf.keras.metrics.MeanAbsoluteError()]

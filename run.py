@@ -88,7 +88,7 @@ if __name__=='__main__':
     f1score,accuracy,mse,mae = eval.evaluation.evaluation(y_actual_fl,y_predict_fl,opt)
     print(f1score,accuracy,mse,mae )
     #fig = visualize(x_actual_,x_predict_)
-    fig = eval.visualize.visualize(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
+    fig = eval.visualize.visualize(y_actual_fl,y_predict_fl,timeSequence,start,cols_orig,opt)   
     df_result = eval.visualize.output(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
     #df_result = output(y_actual_fl,y_predict_fl)
 

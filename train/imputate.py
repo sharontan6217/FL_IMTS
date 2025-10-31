@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import utils
 from utils.utils import fl_convertion
 import model
-from model import brnn, Config
+from model import Config, brnn
 from model.Config import brnn_config,fl_config
 import matplotlib.pyplot as plt
 import random
@@ -23,13 +23,13 @@ import gc
 #scaler = StandardScaler()
 scaler = MinMaxScaler()
 
-fl_config = fl_config()
+config = fl_config()
 
 def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
     gc.collect()
-    trainSize = fl_config.trainSize
-    testSize = fl_config.testSize
-    predictSize = fl_config.predictSize
+    trainSize = config.trainSize
+    testSize = config.testSize
+    predictSize = config.predictSize
     graph_dir = opt.graph_dir
     
 
@@ -113,6 +113,12 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                             pseudo_y_ = model_imputate.predict(x_train_fl_).astype(np.float32) # Generate pseudo-labels
                             df_predict = pd.DataFrame()
                             #print(len(cols_orig))
+                            '''
+                            df_predict['P4']=np.array(pseudo_y_ ).reshape(-1,)[:length]
+                            df_predict['Cz']=np.array(pseudo_y_ ).reshape(-1,)[length:length*2]
+                            df_predict['F8']=np.array(pseudo_y_ ).reshape(-1,)[length*2:length*3]
+                            df_predict['T7']=np.array(pseudo_y_ ).reshape(-1,)[length*3:]
+                            '''
                             for n in range(len(cols_orig)):
                                 #print(cols_orig[n])
                                 col_name = cols_orig[n]
@@ -120,7 +126,8 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                                     df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[:length]
                                 else:
                                     df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
-                            #print(df_predict)
+
+                            print(df_predict)
                             missing_value=df_predict.values[-1][j]
                             diff_ = abs(estimate[i][j]-missing_value)      
                             diff.append(diff_)

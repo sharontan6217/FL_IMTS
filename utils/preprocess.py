@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 import model
-from model import brnn, Config
+from model import Config, brnn
 from model.Config import fl_config
 import train
 from train import imputate, predict
 import random
-fl_config = fl_config()
+config = fl_config()
 def dataSplit(orig,timeSequence,opt,cols_orig):
     '''
     x_train = np.array(x[-start:-start+trainSize])
@@ -24,9 +24,9 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     for col in df_imts.columns:
         df_imts =df_imts[df_imts[col]!=-1 ]
     '''
-    trainSize = fl_config.trainSize
-    testSize = fl_config.testSize
-    predictSize = fl_config.predictSize
+    trainSize = config.trainSize
+    testSize = config.testSize
+    predictSize = config.predictSize
 
     totalSize = trainSize+testSize+predictSize
 
