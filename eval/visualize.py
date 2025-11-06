@@ -25,8 +25,8 @@ from framework import federated_learning_nn
 from model.Config import brnn_config,fl_config
 import gc
 
-#scaler = StandardScaler()
-scaler = MinMaxScaler()
+scaler = StandardScaler()
+#scaler = MinMaxScaler()
 fl_config = fl_config()
 trainSize = fl_config.trainSize
 testSize = fl_config.testSize
@@ -43,7 +43,8 @@ def visualize(actual,predict,timeSequence,start,cols_orig,opt):
         else:
             predict_value=predict[predictSize*n:predictSize*(n+1)]
             actual_value=actual[predictSize*n:predictSize*(n+1)]
-
+        col_name = col_name.replace(' ','').replace('|','')
+        fig_name='test_scenario_'+col_name+'_'+timeSequence+'_'+str(start)+'_brnn.png'
         fig=plt.figure()
         print(actual_value)
         print(predict_value)
@@ -53,7 +54,6 @@ def visualize(actual,predict,timeSequence,start,cols_orig,opt):
         plt.ylabel(col_name)
         plt.title('Plot Graph of Actual and Predicted {}'.format(col_name))
         plt.legend(loc='best')
-        fig_name='test_scenario_'+col_name+'_'+timeSequence+'_'+str(start)+'_brnn.png'
         plt.savefig(opt.graph_dir+fig_name)
         plt.close()   
     fig=plt.figure()
