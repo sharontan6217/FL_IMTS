@@ -16,7 +16,9 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     y_actual = np.array(y[-start+trainSize+predictSize:-start+trainSize+testSize+predictSize])
     '''
     print(len(orig))
-    mask = datamask(orig)
+    #mask = datamask(orig)
+    mask=orig
+    print(mask)
     #df_imts = pd.DataFrame()
     df_imts=mask.replace(np.nan,-1)
     #df_imts=orig.replace(np.nan,-1)
@@ -37,9 +39,10 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     #df_imts = df_imts.drop(('index'),axis=1)
     x = df_imts[-start-1:-1]
     y = df_imts[-start:]
-    y_orig = mask[-start:]
+    y_orig = orig[-start:]
     #x = x.reset_index()
     #y = y.reset_index()
+    y_orig.to_csv('orig.csv')
 
     #print(len(total))
     print(x.columns)
@@ -55,8 +58,10 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     y= np.array(y)
     '''
     
-    x_train,y_train,x_test,y_test,y_actual,x_imputate=imputate.brnn_imputate(x,y,start,timeSequence,opt,cols_orig)
-    #y_actual = np.array(y_orig[trainSize+testSize:trainSize+testSize+predictSize]).astype(np.float32)
+    x_train,y_train,x_test,y_test,x_imputate=imputate.brnn_imputate(x,y,start,timeSequence,opt,cols_orig)
+    y_actual = np.array(y_orig[trainSize+testSize:trainSize+testSize+predictSize]).astype(np.float32)
+    print('-----------------------------------y_actual is-----------------------------')
+    print(y_actual)
     #y_actual = scaler_y.transform(y_actual)
 
     #print(len(x_total))
@@ -65,7 +70,7 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
    
 
     
-    print(len(x_train),len(y_train),len(x_test),len(y_test),len(y_actual))
+    print(len(x),len(y),len(x_train),len(y_train),len(x_test),len(y_test),len(y_actual))
     #print(x_train,y_train,x_test,y_test,y_actual)
     
     #print(y_train)

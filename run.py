@@ -5,7 +5,7 @@ import os
 
 import experiments 
 
-from experiments.data import airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad
+from experiments.data import airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad,test_dataLoad,finance_dataLoad
 import model
 from model import brnn
 from model.brnn import neuralNetwork
@@ -31,9 +31,9 @@ import gc
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir',type=str,default='./data/eeg/s01_ex01_s01.csv', help = 'directory of the original data.' )
-    parser.add_argument('--graph_dir',type=str,default='./graph/eeg/', help = 'directory of graphs' )
-    parser.add_argument('--output_dir',type=str,default='./output/eeg/', help = 'directory of outputs')
-    parser.add_argument('--log_dir',type=str,default='./log/eeg/', help = 'directory of the transaction logs.' )
+    parser.add_argument('--graph_dir',type=str,default='./graph/eeg/1000-200/', help = 'directory of graphs' )
+    parser.add_argument('--output_dir',type=str,default='./output/eeg/1000-200/', help = 'directory of outputs')
+    parser.add_argument('--log_dir',type=str,default='./log/eeg/1000-200/', help = 'directory of the transaction logs.' )
     parser.add_argument('--with_metalearning',type=bool,default=False, help = 'Defult to be False, True if adding meta-learning method.' )
     parser.add_argument('--metalearning_name',type=str,default='None', help = 'learning method is one of the list ["None", "reptile","MAML"], reptile for gradient decent algorithms and Model Agonistic Meta Learning (MAML) for ML and DL algorithms' )
     opt = parser.parse_args()
@@ -43,6 +43,7 @@ if __name__=='__main__':
     gc.collect()
     project_dir = os.getcwd()
     os.chdir(project_dir)
+
     #data_dir = './data/climate/data/ushcn_daily/pub12/ushcn_daily/state08_FL.csv'
     #data_dir = 'C:/Users/sharo/Documents/fl_imts/data/PhysioNet/ecg-id-database-1.0.0/ecg-id-database-1.0.0/Person_01/output.csv'
     #data_dir = 'C:/Users/sharo/Documents/fl_imts/data/PhysioNet/auditory-evoked-potential-eeg-biometric-dataset-1.0.0/auditory-evoked-potential-eeg-biometric-dataset-1.0.0/Filtered_Data/s01_ex01_s01.csv'
@@ -60,10 +61,12 @@ if __name__=='__main__':
 
 
     #df,orig = climate_dataLoad()
-    orig = eeg_dataLoad(data_dir)
-    #data,orig = mimicicu_dataLoad()
+    orig,cols_orig = eeg_dataLoad(data_dir)
+    #orig,cols_orig = test_dataLoad(data_dir)
+    #orig,cols_orig = finance_dataLoad(data_dir)
+    #orig,cols_orig = mimicicu_dataLoad(data_dir)
     print(len(orig))
-    cols_orig = orig.columns
+
 
     
     if os.path.exists(graph_dir)==False:
@@ -76,6 +79,7 @@ if __name__=='__main__':
     #start = 0
     timeSequence = str(datetime.datetime.now())[20:26]
     x,y,x_imputate,x_train,y_train,x_test,y_test,y_actual,start = preprocess.dataSplit(orig,timeSequence,opt,cols_orig)
+    
     y_predict, y_actual = predict.FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,timeSequence,start,opt)
     #y_actual,y_predict = FL_train_gan(x_train,y_train,x_test,y_test,y_actual)
     #y_actual,y_predict = FL_train_predict_window(x,y,x_train,y_train,x_test,y_test,y_actual,start)
@@ -91,4 +95,5 @@ if __name__=='__main__':
     fig = eval.visualize.visualize(y_actual_fl,y_predict_fl,timeSequence,start,cols_orig,opt)   
     df_result = eval.visualize.output(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
     #df_result = output(y_actual_fl,y_predict_fl)
+    
 

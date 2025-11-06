@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score,roc_
 from sklearn.model_selection import train_test_split 
 from sklearn.model_selection import train_test_split
 import utils
-from utils.utils import fl_convertion
+from utils.utils import fl_convertion,reverse_normalization,reverse_standardation
 import model
 from model import Config, brnn
 from model.Config import brnn_config,fl_config
@@ -20,8 +20,8 @@ import random
 from framework import federated_learning_nn
 import gc
 
-#scaler = StandardScaler()
-scaler = MinMaxScaler()
+scaler = StandardScaler()
+#scaler = MinMaxScaler()
 
 config = fl_config()
 
@@ -45,11 +45,12 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
     x_.to_csv('filtered.csv')
     print(len(x_))
     print(len(y_))
-
-    x_train_ = x_[:trainSize]
-    x_test_ = x_[trainSize:trainSize+testSize]
-    y_train_ = y_[:trainSize]
-    y_test_ = y_[trainSize:trainSize+testSize]
+    trainSize_real = int(len(x_)*0.8)
+    testSize_real = len(x_)-trainSize_real
+    x_train_ = x_[:trainSize_real]
+    x_test_ = x_[trainSize_real:trainSize_real+testSize_real]
+    y_train_ = y_[:trainSize_real]
+    y_test_ = y_[trainSize_real:trainSize_real+testSize_real]
 
     df_missing = x.replace(-1,np.nan)
     df_missing_y= y.replace(-1,np.nan)
@@ -64,22 +65,36 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
     for col in missing_y.columns:
         non_null_mask = missing_y[col].notna()
         missing_y.loc[non_null_mask,col]=scaler.fit_transform(missing_y.loc[non_null_mask,col].values.reshape(-1,1)).flatten()
-    
+
+
 
     x_ = scaler.fit_transform(np.array(x_))
     estimate = scaler.transform(x_estimate)
     x_train_ = x_[:trainSize]
     x_test_ = x_[trainSize:trainSize+testSize]
 
+
+
     y_ = scaler.transform(np.array(y_))
     y_train_ = y_[:trainSize]
     y_test_ = y_[trainSize:trainSize+testSize]
 
-    y_actual_ = missing_y[trainSize+testSize:trainSize+testSize+predictSize]
+    #y_actual_ = missing_y[trainSize+testSize:trainSize+testSize+predictSize]
+    y_actual_ = df_missing_y[trainSize+testSize:trainSize+testSize+predictSize].values
     
     #y_actual_ = scaler.transform(y_actual_)
     print(len(x_train_),len(y_train_),len(x_test_),len(y_test_),len(y_actual_))
     print(y_actual_)
+    with open ('train_imputate.log','a') as f:
+        f.write('-----------------x_train is-------------\n')
+        f.write(str(x_train_))
+        f.write('-----------------y_train is-------------\n')
+        f.write(str(y_train_))
+        f.write('-----------------x_test is-------------\n')
+        f.write(str(x_test_))
+        f.write('-----------------y_test is-------------\n')
+        f.write(str(y_test_))
+        f.close()
     if 'index' in x.columns:
         x = x.drop(('index'),axis=1)
     brnn_graph_dir=graph_dir+'accuracy/'
@@ -141,20 +156,23 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                         missing[i][j] = imputated_value[np.argmin(diff)]
                     print(i,missing[i][j])
         del model_imputate
-    x_train = missing[:trainSize].astype(np.float32)
-    y_train = missing[1:trainSize+1].astype(np.float32)
-    x_test = missing[trainSize:trainSize+testSize].astype(np.float32)
-    y_test = missing[trainSize+1:trainSize+testSize+1].astype(np.float32)
+
+    #missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
+    missing_std = reverse_standardation(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
+    print(missing_std)
+    x_train = missing_std[:trainSize].astype(np.float32)
+    y_train = missing_std[1:trainSize+1].astype(np.float32)
+    x_test = missing_std[trainSize:trainSize+testSize].astype(np.float32)
+    y_test = missing_std[trainSize+1:trainSize+testSize+1].astype(np.float32)
     y_actual = y_actual_.astype(np.float32)
     print(len(x_train),len(y_train),len(x_test),len(y_test),len(y_actual))
-    x_imputate = missing
+    x_imputate = missing_std
     print(x_imputate)
-    df_imputate = pd.DataFrame(data=missing)
+    df_imputate = pd.DataFrame(data=missing_std)
     df_imputate.to_csv('imputate.csv')
     
-    
 
-    return x_train,y_train,x_test,y_test,y_actual,x_imputate
+    return x_train,y_train,x_test,y_test,x_imputate
 def imputate(df,imputated_value):
     if 'index' in df.columns:
         df = df.drop(('index'),axis=1)
@@ -162,16 +180,20 @@ def imputate(df,imputated_value):
     for col in df.columns:
         for i in range(len(df)):
             try:
-                if df.loc[i,col]==imputated_value:
-                    if df.loc[i-1,col]!=imputated_value and df.loc[i+1,col]!=imputated_value:
-                        matrix_before =  [item for item in df.loc[:i-1,col] if item !=imputated_value ][-3:]
-                        matrix_after =  [item for item in df.loc[i+1:,col] if item !=imputated_value ][:3]
-                        df.loc[i,col] = 0.8*np.mean(matrix_before)+1.2*np.mean(matrix_after)
+                if i==0:
+                    estimate_matrix = [item for item in df.loc[i:,col] if item!=imputated_value ][:7]
+                    df.loc[i,col]  =np.mean(estimate_matrix)   
+                else:  
+                    if df.loc[i,col]==imputated_value:
+                        if df.loc[i-1,col]!=imputated_value and df.loc[i+1,col]!=imputated_value:
+                            matrix_before =  [item for item in df.loc[:i-1,col] if item !=imputated_value ][-3:]
+                            matrix_after =  [item for item in df.loc[i+1:,col] if item !=imputated_value ][:3]
+                            df.loc[i,col] = 0.8*np.mean(matrix_before)+1.2*np.mean(matrix_after)
+                        else:
+                            estimate_matrix = [item for item in df.loc[max(0,i-1):,col] if item!=imputated_value ][:7]
+                            df.loc[i,col]  =np.mean(estimate_matrix)     
                     else:
-                        estimate_matrix = [item for item in df.loc[max(0,i-1):,col] if item!=imputated_value ][:7]
-                        df.loc[i,col]  =np.mean(estimate_matrix)     
-                else:
-                    continue
+                        continue
             except Exception as e:
                 print(e)              
  
