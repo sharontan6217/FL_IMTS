@@ -24,7 +24,8 @@ import matplotlib.pyplot as plt
 from framework import federated_learning_nn
 import gc
 
-
+#scaler = StandardScaler()
+scaler = MinMaxScaler()
 
 
 
