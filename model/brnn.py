@@ -38,7 +38,7 @@ model_config = Config.brnn_config()
 
 # init data
 
-scaler = StandardScaler()
+
 
 
 class neuralNetwork():
@@ -72,6 +72,6 @@ class neuralNetwork():
         print (model.summary())
         
 
-
+        early_stopping=EarlyStopping(monitor="var_loss", patience=patience)
         
         return model

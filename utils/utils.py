@@ -27,8 +27,8 @@ def reverse_logarithm(orig_log):
     return diff
 def reverse_normalization(scaler_data, x,cols_orig):
     X = pd.DataFrame(scaler_data)
-    min_scaler = X.min(axis=1)
-    max_scaler = X.max(axis=1)
+    min_scaler = X.min()
+    max_scaler = X.max()
     print(min_scaler)
     print(max_scaler)
     df_x = pd.DataFrame(data=x,columns=cols_orig)

@@ -102,6 +102,7 @@ def train(client_datasets):
 
     loss=[]
     mae = []
+    early_stop = 0
     for round_num in range(config.NUM_ROUNDS):
         print(f'Round {round_num + 1}/{config.NUM_ROUNDS}')
         
@@ -110,8 +111,12 @@ def train(client_datasets):
         state, metrics = iterative_process.next(state, selected_client_data)
         loss.append(list(metrics.items())[2][1]['loss'])
         mae.append(list(metrics.items())[2][1]['mean_absolute_error'])
-        
+        if list(metrics.items())[2][1]['loss']>min(loss) :
+            early_stop+=1
         print(f'Round {round_num + 1} metrics: {metrics}')
+        if early_stop==model_config.patience:
+            print('No improvement for {} epchs, stop the training'.format(early_stop))
+            continue
     return state,metrics,loss,mae
 def eval(test_datasets,state,metrics):
     # 5. Evaluation (optional)

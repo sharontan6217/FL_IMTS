@@ -20,8 +20,8 @@ def fl_config():
     config.poolSize = 2000
     config.trainSize = 1000
     config.testSize = 200
-    config.predictSize = 10
-    config.NUM_ROUNDS = 600
+    config.predictSize = 20
+    config.NUM_ROUNDS = 800
     config.batch_size=128
-    config.learning_rate=5e-4
+    config.learning_rate=5e-5
     return config

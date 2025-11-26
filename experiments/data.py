@@ -9,8 +9,6 @@ import time
 
 import gc
 
-scaler = StandardScaler()
-#scaler = MinMaxScaler()
 config = fl_config()
 poolSize = config.poolSize
 def airquality_dataLoad(data_dir):
@@ -123,7 +121,7 @@ def ecg_dataLoad(data_dir):
     #x = np.array(x).reshape(-1,1)
     #y = np.array(y).reshape(-1,1)
     #print(len(data),len(x_orig),len(y_orig))
-    return orig
+    return orig,cols_orig
 def uci_dataLoad(train_data_dir,test_data_dir):
     global cols_orig
     df_train = pd.read_csv(train_data_dir,header=0,na_filter=True)  
@@ -142,7 +140,7 @@ def uci_dataLoad(train_data_dir,test_data_dir):
     #x = np.array(x).reshape(-1,1)
     #y = np.array(y).reshape(-1,1)
     #print(len(data),len(x_orig),len(y_orig))
-    return orig
+    return orig,cols_orig
 
 def eeg_dataLoad(data_dir):
     global cols_orig
@@ -166,7 +164,96 @@ def eeg_dataLoad(data_dir):
     #y = np.array(y).reshape(-1,1)
     #print(len(data),len(x_orig),len(y_orig))
     return orig,cols_orig
+def climate_dataLoad(data_dir):
+    global cols_orig
+    df_orig = pd.read_csv(data_dir,header=0)    
+    #df_merged = df_merged.replace('-9999',np.nan)
+    #df_merged = df_merged.dropna()
+    df = df_orig.drop(['DATE','COOP_ID','TIME_STAMP'],axis=1)
 
+    print(len(df))
+    '''
+    unimputed = df[-randint-poolSize:-randint]
+    for col in df.columns:
+        for i in range(len(df)):
+            try:
+                if df.loc[i,col]==-9999:
+                    if df.loc[i-1,col]!= -9999 and df.loc[i+1,col]!=-9999:
+                        df.loc[i,col] = np.mean([0.8*df.loc[i-1,col],1.2*df.loc[i+1,col]])
+                    else:
+                        df.loc[i,col]  =np.mean(df.loc[i-8:i-1,col])
+                else:
+                    continue
+            except Exception as e:
+                    #print(e)
+                    df.loc[i,col]  =np.mean(df.loc[i-8:i-1,col])
+    '''
+    randint = random.randint(0,len(df)-poolSize+1)
+    
+    orig = df[-randint-poolSize:-randint]
+    print(orig)
+    cols_orig = df.columns
+    print(cols_orig)
+    #y_orig = data[-poolSize:]
+    #x = np.array(x).reshape(-1,1)
+    #y = np.array(y).reshape(-1,1)
+    #print(len(data),len(x_orig),len(y_orig))
+    return orig,cols_orig
+def climate_dataLoad_samples(data_dir):
+    global cols_orig
+    df_orig = pd.read_csv(data_dir,header=0)
+    df_orig.to_csv('orig.csv')
+    elements = set(df_orig['ELEMENT'])
+    print(elements)
+    #print(df_orig)
+    df_orig = df_orig[['COOP_ID','YEAR','MONTH','DAY','ELEMENT','VALUE','DATE']]
+    print(df_orig)
+    df_merged = pd.DataFrame()  
+    for element in elements:
+        print(element)
+        df_merged_ = df_orig[df_orig['ELEMENT']==element]
+        if len(df_merged)==0:
+            df_merged = df_merged_
+            print(df_merged)
+            df_merged['VALUE_'+element]=df_merged['VALUE']
+        else:
+            print(df_merged_)
+            df_merged = df_merged.merge(df_merged_,how='outer',on=['COOP_ID','YEAR','MONTH','DAY'],suffixes=('', '_'+element))
+            print(df_merged)
+        df_merged[element]=df_merged['VALUE_'+element]
+        df_merged = df_merged.replace('-9999',np.nan)
+        #df_merged = df_merged.dropna()
+
+    print(df_merged)
+    sample_coop_id = list(set(df_merged['COOP_ID']))[0]
+    df_merged.to_csv('merged.csv')
+    df_sample = df_merged[df_merged['COOP_ID']==sample_coop_id]
+    df = pd.DataFrame()
+    for element in elements:
+        df['COOP_ID'] = df_sample['COOP_ID']
+        df['YEAR'] = df_sample['YEAR']
+        df['MONTH'] = df_sample['MONTH']
+        df['DAY'] = df_sample['DAY']
+        df[element] = df_sample['VALUE_'+element]
+    df = df.sort_values(['COOP_ID','YEAR','MONTH','DAY']).reset_index()
+    df.to_csv('clean.csv')
+
+
+
+    print(df)
+    df = df.drop(['index','COOP_ID','YEAR','MONTH','DAY'],axis=1)
+
+    randint = random.randint(0,len(df)-poolSize+1)
+    
+    orig = df[-randint-poolSize:-randint]
+    print(orig)
+    cols_orig = df.columns
+    print(cols_orig)
+    #y_orig = data[-poolSize:]
+    #x = np.array(x).reshape(-1,1)
+    #y = np.array(y).reshape(-1,1)
+    #print(len(data),len(x_orig),len(y_orig))
+    return orig,cols_orig
 def test_dataLoad(data_dir):
     global cols_orig
     df_orig = pd.read_csv(data_dir,header=0,na_filter=True)  

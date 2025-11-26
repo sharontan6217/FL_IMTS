@@ -25,8 +25,7 @@ from framework import federated_learning_nn
 from model.Config import brnn_config,fl_config
 import gc
 
-scaler = StandardScaler()
-#scaler = MinMaxScaler()
+
 fl_config = fl_config()
 trainSize = fl_config.trainSize
 testSize = fl_config.testSize

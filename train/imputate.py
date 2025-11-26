@@ -20,8 +20,8 @@ import random
 from framework import federated_learning_nn
 import gc
 
-scaler = StandardScaler()
-#scaler = MinMaxScaler()
+#scaler = StandardScaler()
+scaler = MinMaxScaler()
 
 config = fl_config()
 
@@ -152,8 +152,8 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                     print(i,missing[i][j])
         del model_imputate
 
-    #missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
-    missing_std = reverse_standardation(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
+    missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
+    #missing_std = reverse_standardation(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
     #missing_std = missing
     print(missing_std)
 
