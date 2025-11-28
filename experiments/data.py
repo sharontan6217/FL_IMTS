@@ -47,40 +47,63 @@ def airquality_dataLoad(data_dir):
     #print(len(data),len(x_orig),len(y_orig))
     return orig,cols_orig
 def mimicicu_dataLoad(data_dir):
+    gc.collect()
     global cols_orig
-    df_orig = pd.read_csv(data_dir,header=0)    
-    df_orig = df_orig.drop(['hadm_id','flag'],axis=1)
-    df_filtered = df_orig[['itemid','valuenum']]
-    df_filtered = df_filtered.groupby(['itemid']).filter(lambda x: len(x)>2000).reset_index()
-    df_item = df_filtered[['itemid']].drop_duplicates()
-    item_list = df_item['itemid'].values
+    df_orig = pd.read_csv(data_dir,header=0)
+    print(len(df_orig))
+    df = df_orig[110000:130000]
+    '''
+    item_list=[]
+    for col in df_merged.columns:
+        if 'ITEMID_' in col:
+            item = col.split('_')[1]
+            print(item)
+            item_list.append(item)
+
+    
+
+
+    df_orig = df_orig.drop(['ROW_ID','HADM_ID','VALUE','FLAG'],axis=1)
+    df_filtered = df_orig[['ITEMID','VALUENUM']]
+    df_filtered = df_filtered.groupby(['ITEMID']).filter(lambda x: len(x)>50000).reset_index()
+    df_item = df_filtered[['ITEMID']].drop_duplicates()
+    item_list = df_item['ITEMID'].values
+    print(len(item_list))
     for i in range(len(item_list)):
         item = item_list[i]
         if i==0:
-            df_merged = df_orig[df_orig['itemid']==item]
+            df_merged = df_orig[df_orig['ITEMID']==item]
         else:
-            df_temp = df_orig[df_orig['itemid']==item]
-            df_merged = df_merged.merge(df_temp,how='outer',on=['subject_id','charttime'],suffixes=('', '_'+str(item)))
+            df_temp = df_orig[df_orig['ITEMID']==item]
+            df_merged = df_merged.merge(df_temp,how='outer',on=['SUBJECT_ID','CHARTTIME'],suffixes=('', '_'+str(item)))
 
     #df_merged=df_merged.replace(np.nan,-9999)
-    df_merged.to_csv('merged.csv')  
+    df_merged.to_csv('merged.csv',chunksize=10000)  
+    
+    print(df_merged[:10000])
+    df_merged[2000:10000].to_csv('samples.csv')
     df=pd.DataFrame()
     for item in item_list:
         print(item)
         item = str(item)
         for col in df_merged.columns:
             if item in col :
-                col_name = 'valuenum_'+item
+                col_name = 'VALUENUM_'+item
                 print(col_name)
                 #print(df_merged[['valuenum_50882']])
                 df[item]=df_merged[[col_name]]
-
-    randint = random.randint(50,len(df)-poolSize+1)
+    df.to_csv('mimic_preprocessed.csv',chunksize=10000)
+    '''
+    randint = random.randint(0,len(df)-poolSize+1)
+    orig = df[-randint-poolSize:-randint]   
     
-    orig = df[-randint-poolSize:-randint]
+
+    orig = orig.reset_index()
+    orig = orig.drop(['Unnamed: 0','index','50800','50802','50804','50818','50821'],axis=1)
     orig.to_csv('orig_mimic.csv')
+    
     print(orig)
-    cols_orig = df.columns
+    cols_orig = orig.columns
     print(cols_orig)
     return orig,cols_orig 
 def ecg_dataLoad(data_dir):

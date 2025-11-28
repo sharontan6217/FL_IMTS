@@ -17,10 +17,10 @@ def brnn_config():
     return model_config
 def fl_config():
     config = ml_collections.ConfigDict()
-    config.poolSize = 2000
-    config.trainSize = 1000
-    config.testSize = 200
-    config.predictSize = 20
+    config.poolSize = 7000
+    config.trainSize = 5000
+    config.testSize = 1000
+    config.predictSize = 100
     config.NUM_ROUNDS = 800
     config.batch_size=128
     config.learning_rate=5e-5

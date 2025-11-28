@@ -30,10 +30,10 @@ import gc
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir',type=str,default='C:/Users/sharo/Documents/FL_IMTS/data/mimic_icu/LABEVENTS.csv', help = 'directory of the original data.' )
-    parser.add_argument('--graph_dir',type=str,default='./graph/mimic/1000-200/', help = 'directory of graphs' )
-    parser.add_argument('--output_dir',type=str,default='./output/mimic/1000-200/', help = 'directory of outputs')
-    parser.add_argument('--log_dir',type=str,default='./log/mimic/1000-200/', help = 'directory of the transaction logs.' )
+    parser.add_argument('--data_dir',type=str,default='C:/Users/sharo/Documents/FL_IMTS/data/mimic_icu/mimic_preprocessed.csv', help = 'directory of the original data.' )
+    parser.add_argument('--graph_dir',type=str,default='./graph/mimic/5000-1000/', help = 'directory of graphs' )
+    parser.add_argument('--output_dir',type=str,default='./output/mimic/5000-1000/', help = 'directory of outputs')
+    parser.add_argument('--log_dir',type=str,default='./log/mimic/5000-1000/', help = 'directory of the transaction logs.' )
     opt = parser.parse_args()
     return opt
 

@@ -119,8 +119,10 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                         for iteration in range(5):  # Run 5 iterations
                             pseudo_x_ = missing[:i-1]
                             length = len(pseudo_x_)
+                            #print(length)
                             x_train_fl_ = fl_convertion(pseudo_x_).astype(np.float32)    
                             pseudo_y_ = model_imputate.predict(x_train_fl_).astype(np.float32) # Generate pseudo-labels
+                            #print(len(pseudo_y_))
                             df_predict = pd.DataFrame()
                             #print(len(cols_orig))
                             '''
@@ -135,9 +137,12 @@ def brnn_imputate(x,y,start,timeSequence,opt,cols_orig):
                                 if n==0:
                                     df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[:length]
                                 else:
+                                    #print(df_predict[col_name])
+                                    #print(pseudo_y_)
+                                    #print(np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)])
                                     df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
 
-                            print(df_predict)
+                            #print(df_predict)
                             missing_value=df_predict.values[-1][j]
                             diff_ = abs(estimate[i][j]-missing_value)      
                             diff.append(diff_)
