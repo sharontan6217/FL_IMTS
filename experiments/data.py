@@ -3,6 +3,10 @@ import numpy as np
 import model
 from model.Config import fl_config
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import torch
+from torch import load
+from torch.utils.data import Dataset,DataLoader
+import os
 
 import random
 import time
@@ -11,6 +15,7 @@ import gc
 
 config = fl_config()
 poolSize = config.poolSize
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def airquality_dataLoad(data_dir):
     global cols_orig
     df_orig = pd.read_csv(data_dir,header=0)    
@@ -20,7 +25,7 @@ def airquality_dataLoad(data_dir):
 
     print(len(df))
     '''
-    unimputated = df[-randint-poolSize:-randint]
+    unimputed = df[-randint-poolSize:-randint]
     for col in df.columns:
         for i in range(len(df)):
             try:
@@ -35,9 +40,7 @@ def airquality_dataLoad(data_dir):
                     #print(e)
                     df.loc[i,col]  =np.mean(df.loc[i-8:i-1,col])
     '''
-    randint = random.randint(0,len(df)-poolSize+1)
-    
-    orig = df[-randint-poolSize:-randint]
+    orig = df[-poolSize:]
     print(orig)
     cols_orig = df.columns
     print(cols_orig)
@@ -51,7 +54,7 @@ def mimicicu_dataLoad(data_dir):
     global cols_orig
     df_orig = pd.read_csv(data_dir,header=0)
     print(len(df_orig))
-    df = df_orig[110000:130000]
+    df = df_orig
     '''
     item_list=[]
     for col in df_merged.columns:
@@ -90,12 +93,10 @@ def mimicicu_dataLoad(data_dir):
             if item in col :
                 col_name = 'VALUENUM_'+item
                 print(col_name)
-                #print(df_merged[['valuenum_50882']])
                 df[item]=df_merged[[col_name]]
     df.to_csv('mimic_preprocessed.csv',chunksize=10000)
     '''
-    randint = random.randint(0,len(df)-poolSize+1)
-    orig = df[-randint-poolSize:-randint]   
+    orig = df[-poolSize:]
     
 
     orig = orig.reset_index()
@@ -137,8 +138,7 @@ def ecg_dataLoad(data_dir):
     df['Person_03'] = data_03
     df['Person_04'] = data_04 
     print(len(df))
-    randint = random.randint(0,len(df)-poolSize+1)
-    orig = df[-randint-poolSize:-randint]
+    orig = df[-poolSize:]
     cols_orig = df.columns
     #y_orig = data[-poolSize:]
     #x = np.array(x).reshape(-1,1)
@@ -154,17 +154,16 @@ def uci_dataLoad(train_data_dir,test_data_dir):
     df = pd.concat((df_train,df_test),axis=0)
     print(df.columns) 
     df = df[['tBodyAcc-mean-X','tBodyAcc-mean-Y','tBodyAcc-mean-Z','tBodyAcc-std-X','tBodyAcc-std-Y','tBodyAcc-std-Z']]
+
     cols_orig = df.columns
 
-    randint = random.randint(0,len(df)-poolSize+1)
-    orig = df[-randint-poolSize:-randint]
+    orig = df[-poolSize:]
     cols_orig = df.columns
     #y_orig = data[-poolSize:]
     #x = np.array(x).reshape(-1,1)
     #y = np.array(y).reshape(-1,1)
     #print(len(data),len(x_orig),len(y_orig))
     return orig,cols_orig
-
 def eeg_dataLoad(data_dir):
     global cols_orig
     df_orig = pd.read_csv(data_dir,header=0,na_filter=True)  
@@ -187,42 +186,95 @@ def eeg_dataLoad(data_dir):
     #y = np.array(y).reshape(-1,1)
     #print(len(data),len(x_orig),len(y_orig))
     return orig,cols_orig
-def climate_dataLoad(data_dir):
+def physionet_dataLoad(data_dir):
     global cols_orig
-    df_orig = pd.read_csv(data_dir,header=0)    
-    #df_merged = df_merged.replace('-9999',np.nan)
-    #df_merged = df_merged.dropna()
-    df = df_orig.drop(['DATE','COOP_ID','TIME_STAMP'],axis=1)
 
-    print(len(df))
-    '''
-    unimputed = df[-randint-poolSize:-randint]
-    for col in df.columns:
-        for i in range(len(df)):
-            try:
-                if df.loc[i,col]==-9999:
-                    if df.loc[i-1,col]!= -9999 and df.loc[i+1,col]!=-9999:
-                        df.loc[i,col] = np.mean([0.8*df.loc[i-1,col],1.2*df.loc[i+1,col]])
-                    else:
-                        df.loc[i,col]  =np.mean(df.loc[i-8:i-1,col])
-                else:
-                    continue
-            except Exception as e:
-                    #print(e)
-                    df.loc[i,col]  =np.mean(df.loc[i-8:i-1,col])
-    '''
-    randint = random.randint(0,len(df)-poolSize+1)
+    orig=[]
+    if  device == torch.device("cpu"):
+        for r,d,f in os.walk(data_dir):
+            for f_ in f:
+                file_dir = r+'/'+f_
+                orig_ = torch.load(file_dir,map_location=torch.device('cpu'))
+                print(len(orig_))
+                for i in range(len(orig_)):
+                    orig.append(orig_[i])
+    else:        
+        for r,d,f in os.walk(data_dir):
+            for f_ in f:
+                file_dir = r+'/'+f_
+                orig_ = torch.load(file_dir)
+                for i in range(len(orig_)):
+                    
+                    orig.append(orig_[i])
+    df_orig =  pd.DataFrame(orig,columns=['file_id','a1','b2','c3'])
+    print(df_orig['b2'])
+
+
+    #df_orig = pd.read_csv(data_dir,header=0,na_filter=True)  
+    #print(df_orig)
+    #df_orig.to_csv('physionet_orig.csv')
+
+    b2=[]
+    df_value=pd.DataFrame()
+    for i in range(len(df_orig)):
+        #print(b2)
+        #file_id = df_orig['file_id'][i]      
+        b2_array= df_orig.loc[i,'b2'].numpy()       
+        #c3_array = df_orig.loc[i,'c3'].numpy()
+        
+        for j in range(len(b2_array)):
+            #print(b2_item)
+            b2_item=b2_array[j]
+            #print(b2_item)
+            count = 0
+            for item in b2_item:
+                if item>0:
+                    count+=1
+            #print(count)
+            if count>10:
+                b2.append(b2_item)
+        i+=1
+        '''
+        for c3_item in c3_array:
+            #print(c3_item)
+            c3.append(c3_item)
+        '''
     
-    orig = df[-randint-poolSize:-randint]
-    print(orig)
+      
+    df_value = pd.DataFrame(b2)
+    df_value.to_csv('physionet_value.csv',chunksize=1000)
+    for col in df_value.columns:
+        if sum(df_value[col])==0:
+            df_value=df_value.drop(col,axis=1)
+
+
+    #df['c3']=c3
+    print(df_value)
+    df_value = df_value.replace(0,np.nan)
+    #print(df_value.columns)
+    for col in df.columns:
+        col_name = 'physionet_'+str(col)
+        df[col_name]=df[col]
+        df=df.drop(col,axis=1)
+    
     cols_orig = df.columns
-    print(cols_orig)
-    #y_orig = data[-poolSize:]
-    #x = np.array(x).reshape(-1,1)
-    #y = np.array(y).reshape(-1,1)
-    #print(len(data),len(x_orig),len(y_orig))
+
+    orig = df[-poolSize:]
+
     return orig,cols_orig
-def climate_dataLoad_samples(data_dir):
+def activity_dataLoad(data_dir):
+    df_orig = pd.read_csv(data_dir,names=['sensor','code','number','time_stamp','data_1','data_2','data_3','activity_category'])
+    df= df_orig.sort_values(['time_stamp','activity_category'])[['data_1','data_2','data_3']]
+    print(df)
+    cols_orig = df.columns
+
+    orig = df[-poolSize:]
+    print(orig)
+    return orig,cols_orig
+    
+
+
+def climate_dataLoad(data_dir):
     global cols_orig
     df_orig = pd.read_csv(data_dir,header=0)
     df_orig.to_csv('orig.csv')
@@ -266,9 +318,7 @@ def climate_dataLoad_samples(data_dir):
     print(df)
     df = df.drop(['index','COOP_ID','YEAR','MONTH','DAY'],axis=1)
 
-    randint = random.randint(0,len(df)-poolSize+1)
-    
-    orig = df[-randint-poolSize:-randint]
+    orig = df[-poolSize:]
     print(orig)
     cols_orig = df.columns
     print(cols_orig)

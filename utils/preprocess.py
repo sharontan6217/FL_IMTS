@@ -3,10 +3,12 @@ import pandas as pd
 import model
 from model import Config, brnn
 from model.Config import fl_config
+import torch
 import train
-from train import imputate, predict
+from train import impute, predict
 import random
 config = fl_config()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def dataSplit(orig,timeSequence,opt,cols_orig):
     '''
     x_train = np.array(x[-start:-start+trainSize])
@@ -29,11 +31,13 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     trainSize = config.trainSize
     testSize = config.testSize
     predictSize = config.predictSize
+    poolSize = config.poolSize
 
     totalSize = trainSize+testSize+predictSize
 
     totalSize = trainSize+testSize+predictSize
-    start = random.randint(totalSize+1,len(orig)-1)
+    #start = random.randint(totalSize+1,len(orig)-1)
+    start = len(orig)-1
     print('---------------------------------imts is ------------------------------')
     print(df_imts)
     #df_imts = df_imts.drop(('index'),axis=1)
@@ -44,30 +48,32 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     #y = y.reset_index()
     y_orig.to_csv('orig.csv')
 
+    if  device != torch.device("cpu"):
+        x = torch.tensor(x.values).to(device).float()
+        y = torch.tensor(y.values).to(device).float()
+
     #print(len(total))
     print(x.columns)
     '''
-    x_imputate = imputate(x,imputated_value=-1)
-    y_imputate = imputate(y,imputated_value=-1)
-    x_train = np.array(x_imputate[:trainSize]).astype(np.float32)
-    y_train = np.array(y_imputate[:trainSize]).astype(np.float32)
-    x_test = np.array(x_imputate[trainSize:trainSize+testSize]).astype(np.float32)
-    y_test = np.array(y_imputate[trainSize:trainSize+testSize]).astype(np.float32)
+    x_impute = impute(x,imputed_value=-1)
+    y_impute = impute(y,imputed_value=-1)
+    x_train = np.array(x_impute[:trainSize]).astype(np.float32)
+    y_train = np.array(y_impute[:trainSize]).astype(np.float32)
+    x_test = np.array(x_impute[trainSize:trainSize+testSize]).astype(np.float32)
+    y_test = np.array(y_impute[trainSize:trainSize+testSize]).astype(np.float32)
     y_actual = np.array(y[trainSize+testSize:trainSize+testSize+predictSize]).astype(np.float32)
     x= np.array(x)
     y= np.array(y)
     '''
-    x_train,y_train,x_test,y_test,x_imputate=imputate.brnn_imputate(x,y,start,timeSequence,opt,cols_orig)
-    #x_train,y_train,x_test,y_test,x_imputate=imputate.brnn_imputate(x,y,start,timeSequence,opt,cols_orig)
+    x_train,y_train,x_test,y_test,x_impute=impute.brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig)
+    #x_train,y_train,x_test,y_test,x_impute=impute.brnn_impute(x,y,start,timeSequence,opt,cols_orig)
     y_actual = np.array(y_orig[trainSize+testSize:trainSize+testSize+predictSize]).astype(np.float32)
-    print('-----------------------------------y_actual is-----------------------------')
-    print(y_actual)
+
     #y_actual = scaler_y.transform(y_actual)
 
     #print(len(x_total))
     #print(len(y_total))
 
-   
 
     
     print(len(x),len(y),len(x_train),len(y_train),len(x_test),len(y_test),len(y_actual))
@@ -77,7 +83,7 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     #x_actual = np.array(x[-start+trainSize+testSize-predictSize:-start+trainSize+testSize+predictSize]
     #x_train,x_test,y_train,y_test = train_test_split(x_,y_,test_size=0.2,shuffle=True)
 
-    return  x,y,x_imputate,x_train,y_train,x_test,y_test,y_actual,start
+    return  x,y,x_impute,x_train,y_train,x_test,y_test,y_actual,start
 def datamask(data):
     count = 0
     data = data.reset_index()

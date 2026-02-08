@@ -51,7 +51,7 @@ def visualize(actual,predict,timeSequence,start,cols_orig,opt):
         plt.plot(predict_value,color='red',label='Prediction')
         plt.xlabel('Time')
         plt.ylabel(col_name)
-        plt.title('Plot Graph of Actual and Predicted {}'.format(col_name))
+        plt.title('Plot Graph of Actual and Predicted MIMIC-{}'.format(col_name))
         plt.legend(loc='best')
         plt.savefig(opt.graph_dir+fig_name)
         plt.close()   

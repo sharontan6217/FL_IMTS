@@ -38,5 +38,11 @@ please run:
 ```
 or
 ```shell
-'python run.py --data_dir ./data/eeg/eeg.csv'
+'python run.py --data_dir ./data/activity/processed/data.pt'
 ```
+
+The source files downloaded in repository include:
+- `data_dir`= './data/activity/processed/data.pt'
+- `data_dir`='./data/physionet/processed/'
+- `data_dir`= './data/climate/data/processed/cleaned_df.csv'
+- `data_dir`= './data/uci/'

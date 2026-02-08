@@ -37,7 +37,7 @@ predictSize = config.predictSize
 
 
 
-def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,timeSequence,start,opt):
+def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,opt):
     gc.collect()
     len_cols = len(cols_orig)
 
@@ -53,15 +53,15 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
     scaler_x = scaler.fit(x_total)
     x_train=scaler_x.transform(x_train)
     x_test=scaler_x.transform(x_test)
-    #x_imputate = scaler_x.transform(x_imputate)
+    #x_impute = scaler_x.transform(x_impute)
     #y_actual=scaler.transform(y_actual)
     y_total = np.concatenate([y_train,y_test],axis=0)
     scaler_y=scaler.fit(y_total)
     y_train = scaler_y.transform(y_train)
     y_test=scaler_y.transform(y_test)
     y_actual = scaler_y.transform(y_actual)
-    #x_imputate = scaler.transform(x_imputate)
-    #x_actual = x_imputate[trainSize:trainSize+testSize]
+    #x_impute = scaler.transform(x_impute)
+    #x_actual = x_impute[trainSize:trainSize+testSize]
     #x_actual = scaler.transform(x_actual)
     #x_train=np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
     #x_test=np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
@@ -78,12 +78,17 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
         f.close()
     graph_dir = opt.graph_dir
     brnn_graph_dir=graph_dir+'accuracy/'
+    predict_model_dir = opt.save_dir+'train.keras'
     if os.path.exists(brnn_graph_dir)==False:
         os.makedirs(brnn_graph_dir)
-    client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
-    state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
-    model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
-    fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
+    if os.path.exists(predict_model_dir)==True:
+        model_predict = keras.models.load_model(predict_model_dir)
+    else:
+        client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
+        state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
+        model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
+        model_predict.save(opt.save_dir+'train.keras')
+        fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
     x_test_fl = fl_convertion(x_test)
 
     
@@ -125,7 +130,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
         #x_new = np.reshape(np.array(x_new),((j+1),len_cols))
         print(x_new)
 
-        x_actual1 = x_imputate[trainSize+j+1:trainSize+testSize+j]
+        x_actual1 = x_impute[trainSize+j+1:trainSize+testSize+j]
         print(x_actual1)
         #print(x_actual1.shape)
 
@@ -166,16 +171,16 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,time
     print('prediction is: ')
     print(y_predict)
     del x_new
-    #scale_y= scaler.fit(y_imputate)
-    #y_actual = scale_y.transform(y_actual)
-    #y_predict = scale_y.transform(y_predict)
+    #scale_y= scaler.fit(y_impute)
+    #y_actual = scaler_y.transform(y_actual)
+    #y_predict = scaler_y.transform(y_predict)
     
     print('start is: ',start)
 
     return y_predict, y_actual
 
 
-def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_imputate,cols_orig,timeSequence,start,opt):
+def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,opt):
     
 
     gc.collect()
@@ -193,16 +198,16 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_imputate,co
     scaler_x = scaler.fit(x_total)
     x_train=scaler_x.transform(x_train)
     x_test=scaler_x.transform(x_test)
-    x_total_imputate = scaler_x.transform(x_total)
-    #x_imputate = scaler_x.transform(x_imputate)
+    x_total_impute = scaler_x.transform(x_total)
+    #x_impute = scaler_x.transform(x_impute)
     #y_actual=scaler.transform(y_actual)
     y_total = np.concatenate([y_train,y_test],axis=0)
     scaler_y=scaler.fit(y_total)
     y_train = scaler_y.transform(y_train)
     y_test=scaler_y.transform(y_test)
     y_actual = scaler_y.transform(y_actual)
-    #x_imputate = scaler.transform(x_imputate)
-    #x_actual = x_imputate[trainSize:trainSize+testSize]
+    #x_impute = scaler.transform(x_impute)
+    #x_actual = x_impute[trainSize:trainSize+testSize]
     #x_actual = scaler.transform(x_actual)
     #x_train=np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
     #x_test=np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
@@ -226,7 +231,7 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_imputate,co
     model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
     fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
     x_test_fl = fl_convertion(x_test)
-    x_actual1 = x_total_imputate[trainSize:trainSize+testSize]
+    x_actual1 = x_total_impute[trainSize:trainSize+testSize]
     
     #meta_optimizer = optim.Adam(param_dict, lr=0.001)
     # Dummy tasks for demonstration
@@ -303,9 +308,9 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_imputate,co
     print('prediction is: ')
     print(y_predict)
     del x_new
-    #scale_y= scaler.fit(y_imputate)
-    #y_actual = scale_y.transform(y_actual)
-    #y_predict = scale_y.transform(y_predict)
+    #scale_y= scaler.fit(y_impute)
+    #y_actual = scaler_y.transform(y_actual)
+    #y_predict = scaler_y.transform(y_predict)
     
     print('start is: ',start)
 
