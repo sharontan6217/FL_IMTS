@@ -54,10 +54,9 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
         #estimate = x_estimate
         print(x)
         print(estimate)
-        try:
-            df_imts_ = df_imts.replace(-1,np.nan).dropna()
-            imputed=np.nan
-        except Exception:
+        df_imts_ = df_imts.replace(-1,np.nan).dropna()
+        imputed=np.nan
+        if len(df_imts_)==0:
             df_imts_ = df_imts.replace(-1,0).dropna() 
             imputed=0      
         print(len(y.replace(-1,np.nan).dropna()))
@@ -142,7 +141,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                 for j in range(len(missing[i])):
                     print(i,j,missing[i][j])
                     if np.isnan([missing[i][j]]) == True:
-                        print(i,missing[i][j])
+                        #print(i,missing[i][j])
                         diff=[]
                         imputed_value=[]
                         if i<8:
@@ -186,7 +185,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                                 f.write(str(diff))
                                 f.close()
                             missing[i][j] = imputed_value[np.argmin(diff)]
-                        print(i,missing[i][j])
+                        #print(i,missing[i][j])
             del model_impute
         if imputed==np.nan:
             missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
@@ -201,10 +200,10 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
 
 
 
-    x_train = missing_std[:trainSize].numpy().astype(np.float32)
-    y_train = missing_std[1:trainSize+1].numpy().astype(np.float32)
-    x_test = missing_std[trainSize:trainSize+testSize].numpy().astype(np.float32)
-    y_test = missing_std[trainSize+1:trainSize+testSize+1].numpy().astype(np.float32)
+    x_train = missing_std[:trainSize].astype(np.float32)
+    y_train = missing_std[1:trainSize+1].astype(np.float32)
+    x_test = missing_std[trainSize:trainSize+testSize].astype(np.float32)
+    y_test = missing_std[trainSize+1:trainSize+testSize+1].astype(np.float32)
 
     print(len(x_train),len(y_train),len(x_test),len(y_test))
     x_impute = missing_std
