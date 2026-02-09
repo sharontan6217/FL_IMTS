@@ -12,6 +12,7 @@ from model.Config import brnn_config,fl_config
 from model.brnn import neuralNetwork
 import matplotlib.pyplot as plt
 import pandas as pd
+import torch
 import datetime
 import os
 import random
@@ -61,6 +62,7 @@ def create_tf_dataset_for_client(x, y):
         y_.append(df_y[col])
     x_ = np.asarray(x_).reshape(-1,1,1)
     y_ = np.asarray(y_).reshape(-1,1,1)
+
     #print(x_)
     #print(y_)
     #print(len(x),len(y),data_per_client)

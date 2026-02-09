@@ -8,9 +8,22 @@ Data:
 5. Climate 	Easterling, D. R. United States Historical Climatology Network daily temperature and precipitation data (1871-1997). No. ORNL/CDIAC-118. Oak Ridge National Lab.(ORNL), Oak Ridge, TN (United States), 2002.
 6. Air quality:  Godahewa, R., Bergmeir, C., Webb, G., Hyndman, R., & Montero-Manso, P. (2020). KDD Cup Dataset (with Missing Values) (Version 4) [Dataset]. Zenodo. https://doi.org/10.5281/zenodo.4656719.
 
+Data:
+Data files are placed in 
+
+`./data/{data category}/{data files}`
+
+For example:
+
+`./data/climate/cleaned_df.csv`
 
 Installation:
-Please run 'pip -r install requirements.txt'
+Please run 
+```shell
+create -n fl_imts python=3.8.20
+conda activate fl_imts
+pip -r install requirements.txt
+```
 
 Experiment:
 The complete command is:
@@ -29,6 +42,7 @@ python run.py
 - `output_dir`,type=str,default='./output/', 'directory of outputs.'
 - `log_dir`,type=str,default='./log/', 'directory of the transaction logs.'
 - `pretrain`,type=bool,default=True, help = 'Whether to execute pretrain model' 
+
 
 
 The configuration file is in `./model/Config.py`, you can change the parameters there.

@@ -8,7 +8,7 @@ import train
 from train import impute, predict
 import random
 config = fl_config()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def dataSplit(orig,timeSequence,opt,cols_orig):
     '''
     x_train = np.array(x[-start:-start+trainSize])
@@ -48,12 +48,9 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     #y = y.reset_index()
     y_orig.to_csv('orig.csv')
 
-    if  device != torch.device("cpu"):
-        x = torch.tensor(x.values).to(device).float()
-        y = torch.tensor(y.values).to(device).float()
 
     #print(len(total))
-    print(x.columns)
+    #print(x.columns)
     '''
     x_impute = impute(x,imputed_value=-1)
     y_impute = impute(y,imputed_value=-1)

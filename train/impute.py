@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 import utils
 from utils.utils import fl_convertion,reverse_normalization,reverse_standardation
 import keras
+import torch
 import model
 from model import Config, brnn
 from model.Config import brnn_config,fl_config
@@ -32,10 +33,14 @@ testSize = config.testSize
 def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     gc.collect()
     graph_dir = opt.graph_dir
-    save_dir = opt.save_dir
+    
     data_category = opt.data_dir.split('/')[2]
     data_dir = './data/'+data_category+'/'
+    save_dir = opt.save_dir+data_category+'/'
+    if os.path.exists(save_dir)==False:
+        os.makedirs(save_dir)
     print(data_dir)
+    print(save_dir)
 
 
 
@@ -44,13 +49,17 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     if os.path.exists(impute_dir)==True:
         missing_std = pd.read_csv(impute_dir)
     else:
-
         x_estimate = impute(x,imputed_value=-1)
         estimate = np.array(x_estimate)
         #estimate = x_estimate
         print(x)
         print(estimate)
-        df_imts_ = df_imts.replace(-1,np.nan).dropna()
+        try:
+            df_imts_ = df_imts.replace(-1,np.nan).dropna()
+            imputed=np.nan
+        except Exception:
+            df_imts_ = df_imts.replace(-1,0).dropna() 
+            imputed=0      
         print(len(y.replace(-1,np.nan).dropna()))
         x_ = df_imts_[-start-1:-1]
         y_ = df_imts_[-start:]
@@ -90,6 +99,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
 
 
 
+
             y_ = scaler.transform(np.array(y_))
             y_train_ = y_[:trainSize_real]
             y_test_ = y_[trainSize_real:trainSize_real+testSize_real]
@@ -115,9 +125,10 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
             missing.to_csv(data_dir+data_category+'_'+'missing.csv')
             print('-------------------start imputation-------------------')
             impute_model_dir = save_dir+'impute.keras'
+
             if os.path.exists(impute_model_dir)==True:
                 model_impute = keras.models.load_model(impute_model_dir)
-            else:
+            elif opt.pretrain==False:
                 client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train_,y_train_,x_test_,y_test_)
                 state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
                 model_impute,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
@@ -127,6 +138,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
             missing = np.array(missing)
 
             for i in range(len(missing)):
+                gc.collect()
                 for j in range(len(missing[i])):
                     print(i,j,missing[i][j])
                     if np.isnan([missing[i][j]]) == True:
@@ -176,8 +188,10 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                             missing[i][j] = imputed_value[np.argmin(diff)]
                         print(i,missing[i][j])
             del model_impute
-        missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
-        #missing_std = reverse_standardation(x.replace(-1,0).dropna().astype(np.float32), missing,cols_orig)
+        if imputed==np.nan:
+            missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
+        else:
+            missing_std = reverse_standardation(x.replace(-1,0).dropna().astype(np.float32), missing,cols_orig)
         #missing_std = missing
         print(missing_std)
         df_impute = pd.DataFrame(data=missing_std)
@@ -187,10 +201,10 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
 
 
 
-    x_train = missing_std[:trainSize].astype(np.float32)
-    y_train = missing_std[1:trainSize+1].astype(np.float32)
-    x_test = missing_std[trainSize:trainSize+testSize].astype(np.float32)
-    y_test = missing_std[trainSize+1:trainSize+testSize+1].astype(np.float32)
+    x_train = missing_std[:trainSize].numpy().astype(np.float32)
+    y_train = missing_std[1:trainSize+1].numpy().astype(np.float32)
+    x_test = missing_std[trainSize:trainSize+testSize].numpy().astype(np.float32)
+    y_test = missing_std[trainSize+1:trainSize+testSize+1].numpy().astype(np.float32)
 
     print(len(x_train),len(y_train),len(x_test),len(y_test))
     x_impute = missing_std

@@ -251,6 +251,7 @@ def physionet_dataLoad(data_dir):
     #df['c3']=c3
     print(df_value)
     df_value = df_value.replace(0,np.nan)
+    df = df_value[[6,7,8,9,10,12,16,17,18,20,22,25,32,40]]
     #print(df_value.columns)
     for col in df.columns:
         col_name = 'physionet_'+str(col)

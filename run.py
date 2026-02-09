@@ -5,7 +5,7 @@ import os
 
 import experiments 
 
-from experiments.data import activity_dataLoad_pt,activity_dataLoad,physionet_dataLoad,airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad,climate_dataLoad,climate_dataLoad_samples,test_dataLoad,finance_dataLoad
+from experiments.data import activity_dataLoad,physionet_dataLoad,airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad,climate_dataLoad,climate_dataLoad,test_dataLoad,finance_dataLoad
 import model
 from model import brnn
 from model.brnn import neuralNetwork
@@ -31,11 +31,12 @@ import gc
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir',type=str,default='./data/activity/processed/data.pt', help = 'directory of the original data.' )
-    parser.add_argument('--graph_dir',type=str,default='./graph/climate/', help = 'directory of graphs' )
-    parser.add_argument('--output_dir',type=str,default='./output/climate/', help = 'directory of outputs')
-    parser.add_argument('--log_dir',type=str,default='./log/climate/', help = 'directory of the transaction logs.' )
-    parser.add_argument('--save_dir',type=str,default='./train/climate/', help = 'directory of the weights.' )
-    parser.add_argument('--save_dir',type=str,default='./train/climate/', help = 'directory of the weights.' )
+    parser.add_argument('--graph_dir',type=str,default='./graph/', help = 'directory of graphs' )
+    parser.add_argument('--output_dir',type=str,default='./output/', help = 'directory of outputs')
+    parser.add_argument('--log_dir',type=str,default='./log/', help = 'directory of the transaction logs.' )
+    parser.add_argument('--save_dir',type=str,default='./train/', help = 'directory of the weights.' )
+    parser.add_argument('--pretrain',type=bool,default=False, help = 'Whether to use pretrained models.' )
+
     opt = parser.parse_args()
     return opt
 
@@ -57,28 +58,21 @@ if __name__=='__main__':
     output_dir =opt.output_dir
     train_data_dir=data_dir+'X_train.csv'
     test_data_dir=data_dir+'X_test.csv'
-    save_dir = './train/'
+    save_dir = opt.save_dir
     if 'uci' in data_dir:
         orig,cols_orig = uci_dataLoad(train_data_dir,test_data_dir)
-        save_dir = save_dir+'uci/'
     elif 'climate' in data_dir.lower():
-        orig,cols_orig = climate_dataLoad_samples(data_dir)
-        save_dir = save_dir+'climate/'
+        orig,cols_orig = climate_dataLoad(data_dir)
     elif 'eeg' in data_dir.lower():
         orig,cols_orig = eeg_dataLoad(data_dir)
-        save_dir = save_dir+'eeg/'
     elif 'ecg' in data_dir.lower():
         orig,cols_orig = ecg_dataLoad(data_dir)
-        save_dir = save_dir+'ecg/'
     elif 'mimic' in data_dir.lower():
         orig,cols_orig = mimicicu_dataLoad(data_dir)
-        save_dir = save_dir+'mimic/'
     elif 'physionet' in data_dir.lower():
         orig,cols_orig = physionet_dataLoad(data_dir)
-        save_dir = save_dir+'physionet/'
     elif 'activity' in data_dir.lower():
         orig,cols_orig = activity_dataLoad(data_dir)
-        save_dir = save_dir+'activity/'
 
     print(len(orig))
 
