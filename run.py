@@ -35,6 +35,7 @@ def get_parser():
     parser.add_argument('--output_dir',type=str,default='./output/climate/', help = 'directory of outputs')
     parser.add_argument('--log_dir',type=str,default='./log/climate/', help = 'directory of the transaction logs.' )
     parser.add_argument('--save_dir',type=str,default='./train/climate/', help = 'directory of the weights.' )
+    parser.add_argument('--save_dir',type=str,default='./train/climate/', help = 'directory of the weights.' )
     opt = parser.parse_args()
     return opt
 
@@ -56,19 +57,28 @@ if __name__=='__main__':
     output_dir =opt.output_dir
     train_data_dir=data_dir+'X_train.csv'
     test_data_dir=data_dir+'X_test.csv'
-    save_dir = opt.save_dir
+    save_dir = './train/'
     if 'uci' in data_dir:
         orig,cols_orig = uci_dataLoad(train_data_dir,test_data_dir)
+        save_dir = save_dir+'uci/'
     elif 'climate' in data_dir.lower():
         orig,cols_orig = climate_dataLoad_samples(data_dir)
+        save_dir = save_dir+'climate/'
     elif 'eeg' in data_dir.lower():
         orig,cols_orig = eeg_dataLoad(data_dir)
+        save_dir = save_dir+'eeg/'
+    elif 'ecg' in data_dir.lower():
+        orig,cols_orig = ecg_dataLoad(data_dir)
+        save_dir = save_dir+'ecg/'
     elif 'mimic' in data_dir.lower():
         orig,cols_orig = mimicicu_dataLoad(data_dir)
+        save_dir = save_dir+'mimic/'
     elif 'physionet' in data_dir.lower():
         orig,cols_orig = physionet_dataLoad(data_dir)
+        save_dir = save_dir+'physionet/'
     elif 'activity' in data_dir.lower():
         orig,cols_orig = activity_dataLoad(data_dir)
+        save_dir = save_dir+'activity/'
 
     print(len(orig))
 

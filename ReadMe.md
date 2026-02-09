@@ -21,12 +21,14 @@ python run.py
     --graph_dir {graph_dir} \
     --log_dir {log_dir} \
     --output {output_dir} \
+    --pretrain {True}
 ```
 
 - `data_dir`: type=str,default='./data/', 'directory of the original data.'  
 - `graph_dir`,type=str,default='./graph/', 'directory of graphs.'
 - `output_dir`,type=str,default='./output/', 'directory of outputs.'
 - `log_dir`,type=str,default='./log/', 'directory of the transaction logs.'
+- `pretrain`,type=bool,default=True, help = 'Whether to execute pretrain model' 
 
 
 The configuration file is in `./model/Config.py`, you can change the parameters there.
