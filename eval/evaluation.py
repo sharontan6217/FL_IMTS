@@ -33,6 +33,8 @@ import gc
 
 
 def evaluation(actual,predict,opt):
+    data_category = opt.data_dir.split('/')[2]
+    log_dir = opt.log_dir+data_category+'/'
     valid_indice = ~np.isnan(actual)
     actual = actual[valid_indice]
     predict = predict[valid_indice]
@@ -49,7 +51,7 @@ def evaluation(actual,predict,opt):
     #pauc_predict=roc_auc_score(actual,predict,average='micro',max_fpr=0.1)
     #ari=adjusted_rand_score(actual,predict)
     #nmi=normalized_mutual_info_score(actual,predict)
-    with open (opt.log_dir+'result.log','a') as f:
+    with open (log_dir+'result.log','a') as f:
 
         f.write('----------------------------------------------------\n')
         #f.write('confusion matrix={}\n'.format(cm_predict))

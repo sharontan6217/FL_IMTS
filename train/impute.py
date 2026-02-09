@@ -32,11 +32,12 @@ testSize = config.testSize
 
 def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     gc.collect()
-    graph_dir = opt.graph_dir
+    
     
     data_category = opt.data_dir.split('/')[2]
     data_dir = './data/'+data_category+'/'
     save_dir = opt.save_dir+data_category+'/'
+    graph_dir = opt.graph_dir+data_category+'/'
     if os.path.exists(save_dir)==False:
         os.makedirs(save_dir)
     print(data_dir)
