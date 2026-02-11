@@ -35,7 +35,6 @@ def get_parser():
     parser.add_argument('--output_dir',type=str,default='./output/', help = 'directory of outputs')
     parser.add_argument('--log_dir',type=str,default='./log/', help = 'directory of the transaction logs.' )
     parser.add_argument('--save_dir',type=str,default='./train/', help = 'directory of the weights.' )
-    parser.add_argument('--pretrain',type=bool,default=False, help = 'Whether to use pretrained models.' )
 
     opt = parser.parse_args()
     return opt

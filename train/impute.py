@@ -43,11 +43,12 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     print(data_dir)
     print(save_dir)
 
+    impute_model_dir = save_dir+'impute.keras'
 
 
     impute_dir = data_dir+data_category+'_'+'impute.csv'
     print(impute_dir)
-    if os.path.exists(impute_dir)==True:
+    if os.path.exists(impute_dir)==True and os.path.exists(impute_model_dir)==True:
         missing_std = pd.read_csv(impute_dir)
     else:
         x_estimate = impute(x,imputed_value=-1)
@@ -124,11 +125,10 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                 os.makedirs(brnn_graph_dir)
             missing.to_csv(data_dir+data_category+'_'+'missing.csv')
             print('-------------------start imputation-------------------')
-            impute_model_dir = save_dir+'impute.keras'
 
             if os.path.exists(impute_model_dir)==True:
                 model_impute = keras.models.load_model(impute_model_dir)
-            elif opt.pretrain==False:
+            else:
                 client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train_,y_train_,x_test_,y_test_)
                 state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
                 model_impute,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)

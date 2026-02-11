@@ -34,18 +34,18 @@ python run.py
     --graph_dir {graph_dir} \
     --log_dir {log_dir} \
     --output {output_dir} \
-    --pretrain {True}
+    --save_dir {save_dir} \
 ```
 
 - `data_dir`: type=str,default='./data/', 'directory of the original data.'  
 - `graph_dir`,type=str,default='./graph/', 'directory of graphs.'
 - `output_dir`,type=str,default='./output/', 'directory of outputs.'
 - `log_dir`,type=str,default='./log/', 'directory of the transaction logs.'
-- `pretrain`,type=bool,default=True, help = 'Whether to execute pretrain model' 
-
+- `save_dir`,type=str,default='./train/', help = 'directory of the weights.'
 
 
 The configuration file is in `./model/Config.py`, you can change the parameters there.
+
 
 To get the forecasting result,
 please run:
@@ -57,8 +57,20 @@ or
 'python run.py --data_dir ./data/activity/processed/data.pt'
 ```
 
+
+If you want to train your own model, please remove the pretrained model `./train/{data category}/{pretrained models}`, and run 
+```shell
+'python run.py '
+```
+or
+```shell
+'python run.py --data_dir ./data/activity/processed/data.pt'
+```
+
+
 The source files downloaded in repository include:
 - `data_dir`= './data/activity/processed/data.pt'
 - `data_dir`='./data/physionet/processed/'
 - `data_dir`= './data/climate/data/processed/cleaned_df.csv'
 - `data_dir`= './data/uci/'
+
