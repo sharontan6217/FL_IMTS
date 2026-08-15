@@ -12,7 +12,6 @@ from model.Config import brnn_config,fl_config
 from model.brnn import neuralNetwork
 import matplotlib.pyplot as plt
 import pandas as pd
-import torch
 import datetime
 import os
 import random
@@ -62,7 +61,6 @@ def create_tf_dataset_for_client(x, y):
         y_.append(df_y[col])
     x_ = np.asarray(x_).reshape(-1,1,1)
     y_ = np.asarray(y_).reshape(-1,1,1)
-
     #print(x_)
     #print(y_)
     #print(len(x),len(y),data_per_client)
@@ -94,11 +92,13 @@ def model_fn():
     
 
 def train(client_datasets):
-    
+    lr_schema= tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=config.learning_rate,decay_steps=config.decay_steps, decay_rate=config.decay)
+
     #model_weights,iterative_process = model_fn(model_predict,client_datasets)
     iterative_process = tff.learning.build_federated_averaging_process(
         model_fn,
-        client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=config.learning_rate))
+        #client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=config.learning_rate,decay=config.decay))
+        client_optimizer_fn=lambda: tf.keras.optimizers.Adamax(learning_rate=lr_schema))
     # 3. Iterative Training
     state = iterative_process.initialize()
 

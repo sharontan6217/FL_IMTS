@@ -14,7 +14,6 @@ import model
 from model import brnn
 from model.brnn import neuralNetwork
 
-import keras
 import math
 import argparse
 import datetime
@@ -33,13 +32,11 @@ import gc
 
 
 def evaluation(actual,predict,opt):
-    data_category = opt.data_dir.split('/')[2]
-    log_dir = opt.log_dir+data_category+'/'
     valid_indice = ~np.isnan(actual)
     actual = actual[valid_indice]
     predict = predict[valid_indice]
-    f1score = f1_score((actual*100).astype('int32'),(predict*100).astype('int32'),average='micro')
-    accuracy = accuracy_score((actual*100).astype('int32'),(predict*100).astype('int32'))
+    #f1score = f1_score(actual,predict,average='macro')
+    #accuracy = accuracy_score(actual,predict)
     mse = mean_squared_error(actual,predict)
     mae = mean_absolute_error(actual,predict)
     #fpr,tpr,thresholds=roc_curve(actual,predict)
@@ -51,7 +48,7 @@ def evaluation(actual,predict,opt):
     #pauc_predict=roc_auc_score(actual,predict,average='micro',max_fpr=0.1)
     #ari=adjusted_rand_score(actual,predict)
     #nmi=normalized_mutual_info_score(actual,predict)
-    with open (log_dir+'result.log','a') as f:
+    with open (opt.log_dir+'result.log','a') as f:
 
         f.write('----------------------------------------------------\n')
         #f.write('confusion matrix={}\n'.format(cm_predict))
@@ -61,9 +58,9 @@ def evaluation(actual,predict,opt):
         #f.write('prc_auc={}\n'.format(prc_auc))
         #f.write('ARI={}\n'.format(ari))
         #f.write('NMI={}\n'.format(nmi))
-        f.write('F Measure={}\n'.format(f1score))
-        f.write('Accuracy Score={}\n'.format(accuracy))
+        #f.write('F Measure={}\n'.format(f1score))
+        #f.write('Accuracy Score={}\n'.format(accuracy))
         f.write('mse={}\n'.format(mse))
         f.write('mae={}\n'.format(mae))
         f.close()
-    return f1score,accuracy,mse,mae
+    return mse,mae

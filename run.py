@@ -5,7 +5,7 @@ import os
 
 import experiments 
 
-from experiments.data import activity_dataLoad,physionet_dataLoad,airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad,climate_dataLoad,climate_dataLoad,test_dataLoad,finance_dataLoad
+from experiments.data import activity_dataLoad_pt,activity_dataLoad,physionet_dataLoad,airquality_dataLoad,mimicicu_dataLoad,ecg_dataLoad,uci_dataLoad,eeg_dataLoad,climate_dataLoad,climate_dataLoad_samples,test_dataLoad,finance_dataLoad
 import model
 from model import brnn
 from model.brnn import neuralNetwork
@@ -17,7 +17,7 @@ import train
 from train import impute, predict
 import utils
 from utils import preprocess, utils
-import keras
+
 import math
 import argparse
 import datetime
@@ -30,12 +30,11 @@ import gc
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir',type=str,default='./data/activity/processed/data.pt', help = 'directory of the original data.' )
-    parser.add_argument('--graph_dir',type=str,default='./graph/', help = 'directory of graphs' )
-    parser.add_argument('--output_dir',type=str,default='./output/', help = 'directory of outputs')
-    parser.add_argument('--log_dir',type=str,default='./log/', help = 'directory of the transaction logs.' )
-    parser.add_argument('--save_dir',type=str,default='./train/', help = 'directory of the weights.' )
-
+    parser.add_argument('--data_dir',type=str,default='./data/climate/cleaned_df.csv', help = 'directory of the original data.' )
+    parser.add_argument('--graph_dir',type=str,default='./graph/climate/GRU/5000-1000/', help = 'directory of graphs' )
+    parser.add_argument('--output_dir',type=str,default='./output/climate/GRU/5000-1000/', help = 'directory of outputs')
+    parser.add_argument('--log_dir',type=str,default='./log/climate/GRU/5000-1000/', help = 'directory of the transaction logs.' )
+    parser.add_argument('--save_dir',type=str,default='./train/climate/GRU/decay/', help = 'directory of the weights.' )
     opt = parser.parse_args()
     return opt
 
@@ -46,33 +45,32 @@ if __name__=='__main__':
     os.chdir(project_dir)
 
     #data_dir = './data/activity/processed/data.pt'
-    #data_dir = './data/physionet/processed/'
+    #data_dir = './data/physionet/processed/set-a_0.0.pt'
     #data_dir = './data/climate/data/processed/cleaned_df.csv'
-    #data_dir = './data/climate/data/uci/'
+    #data_dir = 'C:/Users/sharo/Documents/fl_imts/data/PhysioNet/ecg-id-database-1.0.0/ecg-id-database-1.0.0/Person_01/output.csv'
+    #data_dir = 'C:/Users/sharo/Documents/fl_imts/data/PhysioNet/auditory-evoked-potential-eeg-biometric-dataset-1.0.0/auditory-evoked-potential-eeg-biometric-dataset-1.0.0/Filtered_Data/s01_ex01_s01.csv'
     #data_dir = 'C:/Users/sharo/Documents/fl_imts/data/mimic_icu/mimic_preprocessed.csv'
+    #graph_dir = './graph/5000-1000/eeg/'
+    #log_dir = './log/5000-1000/eeg/'
+    #output_dir = './output/5000-1000/eeg/'
     opt = get_parser()
     data_dir = opt.data_dir
     graph_dir = opt.graph_dir
     log_dir =opt.log_dir
     output_dir =opt.output_dir
-    train_data_dir=data_dir+'X_train.csv'
-    test_data_dir=data_dir+'X_test.csv'
+    #train_data_dir=data_dir+'X_train.csv'
+    #test_data_dir=data_dir+'X_test.csv'
     save_dir = opt.save_dir
-    if 'uci' in data_dir:
-        orig,cols_orig = uci_dataLoad(train_data_dir,test_data_dir)
-    elif 'climate' in data_dir.lower():
-        orig,cols_orig = climate_dataLoad(data_dir)
-    elif 'eeg' in data_dir.lower():
-        orig,cols_orig = eeg_dataLoad(data_dir)
-    elif 'ecg' in data_dir.lower():
-        orig,cols_orig = ecg_dataLoad(data_dir)
-    elif 'mimic' in data_dir.lower():
-        orig,cols_orig = mimicicu_dataLoad(data_dir)
-    elif 'physionet' in data_dir.lower():
-        orig,cols_orig = physionet_dataLoad(data_dir)
-    elif 'activity' in data_dir.lower():
-        orig,cols_orig = activity_dataLoad(data_dir)
 
+    #orig,cols_orig = uci_dataLoad(train_data_dir,test_data_dir)
+    orig,cols_orig = climate_dataLoad_samples(data_dir)
+    #orig,cols_orig = eeg_dataLoad(data_dir)
+    #orig,cols_orig = test_dataLoad(data_dir)
+    #orig,cols_orig = finance_dataLoad(data_dir)
+    #orig,cols_orig = mimicicu_dataLoad(data_dir)
+    #orig,cols_orig = physionet_dataLoad(data_dir)
+    #orig,cols_orig = activity_dataLoad(data_dir)
+    #orig,cols_orig = activity_dataLoad_pt(data_dir)
     print(len(orig))
 
 
@@ -99,10 +97,12 @@ if __name__=='__main__':
     print(y_actual)
     print('prediction is: ')
     print(y_predict)
-    f1score,accuracy,mse,mae = eval.evaluation.evaluation(y_actual_fl,y_predict_fl,opt)
-    print(f1score,accuracy,mse,mae )
+    mse,mae = eval.evaluation.evaluation(y_actual_fl,y_predict_fl,opt)
+    print(mse,mae )
+    #fig = visualize(x_actual_,x_predict_)
     fig = eval.visualize.visualize(y_actual_fl,y_predict_fl,timeSequence,start,cols_orig,opt)   
     df_result = eval.visualize.output(y_actual_fl,y_predict_fl,timeSequence,start,opt)   
+    #df_result = output(y_actual_fl,y_predict_fl)
     
     end_time = datetime.datetime.now()
     print("start time is {}, and end time is {}".format(str(start_time),str(end_time)))

@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 import model
 from model import brnn
 from model.brnn import neuralNetwork
-import keras
+
 import math
 import argparse
 import datetime
@@ -32,8 +32,6 @@ testSize = fl_config.testSize
 predictSize = fl_config.predictSize
 
 def visualize(actual,predict,timeSequence,start,cols_orig,opt):
-    data_category = opt.data_dir.split('/')[2]
-    graph_dir = opt.graph_dir+data_category+'/'
     for n in range(len(cols_orig)):
         time.sleep(5)
         print(cols_orig[n])
@@ -55,7 +53,7 @@ def visualize(actual,predict,timeSequence,start,cols_orig,opt):
         plt.ylabel(col_name)
         plt.title('Plot Graph of Actual and Predicted MIMIC-{}'.format(col_name))
         plt.legend(loc='best')
-        plt.savefig(graph_dir+fig_name)
+        plt.savefig(opt.graph_dir+fig_name)
         plt.close()   
     fig=plt.figure()
     for n in range(len(cols_orig)):
@@ -74,15 +72,13 @@ def visualize(actual,predict,timeSequence,start,cols_orig,opt):
     plt.ylabel('Values')
     plt.legend(bbox_to_anchor=(0.5,1.15),fontsize='xx-small',ncol=4,loc='upper center')
     fig_name='test_scenario_all'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(graph_dir+fig_name)
+    plt.savefig(opt.graph_dir+fig_name)
     plt.close()  
     return fig
 def output(actual,predict,timeSequence,start,opt):
-    data_category = opt.data_dir.split('/')[2]
-    output_dir =  opt.output_dir+data_category+'/'
     df_result_actual=pd.DataFrame(data=actual)
     df_result_predict=pd.DataFrame(data=predict)
     df_result = pd.concat((df_result_actual,df_result_predict),axis=1)
     output_name = 'output_'+timeSequence+'_'+str(start)+'.csv'
-    df_result.to_csv(output_dir+output_name)
+    df_result.to_csv(opt.output_dir+output_name)
     return df_result

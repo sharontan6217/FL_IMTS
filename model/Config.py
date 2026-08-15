@@ -24,4 +24,6 @@ def fl_config():
     config.NUM_ROUNDS = 800
     config.batch_size=128
     config.learning_rate=5e-5
+    config.decay_steps=1000
+    config.decay = 0.9
     return config

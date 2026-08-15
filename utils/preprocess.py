@@ -8,7 +8,7 @@ import train
 from train import impute, predict
 import random
 config = fl_config()
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def dataSplit(orig,timeSequence,opt,cols_orig):
     '''
     x_train = np.array(x[-start:-start+trainSize])
@@ -38,6 +38,7 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     totalSize = trainSize+testSize+predictSize
     #start = random.randint(totalSize+1,len(orig)-1)
     start = len(orig)-1
+    #start = trainSize+testSize+predictSize
     print('---------------------------------imts is ------------------------------')
     print(df_imts)
     #df_imts = df_imts.drop(('index'),axis=1)
@@ -48,12 +49,15 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     #y = y.reset_index()
     y_orig.to_csv('orig.csv')
 
+    if  device != torch.device("cpu"):
+        x = torch.tensor(x.values).to(device).float()
+        y = torch.tensor(y.values).to(device).float()
 
     #print(len(total))
-    #print(x.columns)
+    print(x.columns)
     '''
-    x_impute = impute(x,imputed_value=-1)
-    y_impute = impute(y,imputed_value=-1)
+    x_impute = impute.impute(x,imputed_value=-1)
+    y_impute = impute.impute(y,imputed_value=-1)
     x_train = np.array(x_impute[:trainSize]).astype(np.float32)
     y_train = np.array(y_impute[:trainSize]).astype(np.float32)
     x_test = np.array(x_impute[trainSize:trainSize+testSize]).astype(np.float32)
@@ -65,7 +69,7 @@ def dataSplit(orig,timeSequence,opt,cols_orig):
     x_train,y_train,x_test,y_test,x_impute=impute.brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig)
     #x_train,y_train,x_test,y_test,x_impute=impute.brnn_impute(x,y,start,timeSequence,opt,cols_orig)
     y_actual = np.array(y_orig[trainSize+testSize:trainSize+testSize+predictSize]).astype(np.float32)
-
+    
     #y_actual = scaler_y.transform(y_actual)
 
     #print(len(x_total))

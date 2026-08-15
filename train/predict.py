@@ -16,7 +16,6 @@ import model
 from model import brnn
 from model.brnn import neuralNetwork
 import keras
-import torch
 import math
 import argparse
 import datetime
@@ -41,11 +40,7 @@ predictSize = config.predictSize
 def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,opt):
     gc.collect()
     len_cols = len(cols_orig)
-    data_category = opt.data_dir.split('/')[2]
-    save_dir = opt.save_dir+data_category+'/'
-    print(save_dir)
-    if os.path.exists(save_dir)==False:
-        os.makedirs(save_dir)
+
     y_train_orig=y_train
     #x_train_orig = x_train
     print('-----------------------------------------y_origin is--------------------------------------')
@@ -70,6 +65,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
     #x_actual = scaler.transform(x_actual)
     #x_train=np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
     #x_test=np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
+    
     with open ('train_predict.log','w') as f:
         f.write('-----------------x_train is-------------\n')
         f.write(str(x_train))
@@ -82,8 +78,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
         f.close()
     graph_dir = opt.graph_dir
     brnn_graph_dir=graph_dir+'accuracy/'
-    predict_model_dir = save_dir+'train.keras'
-
+    predict_model_dir = opt.save_dir+'train.keras'
     if os.path.exists(brnn_graph_dir)==False:
         os.makedirs(brnn_graph_dir)
     if os.path.exists(predict_model_dir)==True:
@@ -92,9 +87,9 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
         client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
         state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
         model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
-        model_predict.save(save_dir+'train.keras')
+        model_predict.save(opt.save_dir+'train.keras')
         fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
-    x_test_fl = fl_convertion(x_test.numpy())
+    x_test_fl = fl_convertion(x_test)
 
     
     #meta_optimizer = optim.Adam(param_dict, lr=0.001)
@@ -314,8 +309,8 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_impute,cols
     print(y_predict)
     del x_new
     #scale_y= scaler.fit(y_impute)
-    #y_actual = scaler_y.transform(y_actual)
-    #y_predict = scaler_y.transform(y_predict)
+    y_actual = scaler_y.transform(y_actual)
+    y_predict = scaler_y.transform(y_predict)
     
     print('start is: ',start)
 

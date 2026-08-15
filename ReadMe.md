@@ -8,22 +8,9 @@ Data:
 5. Climate 	Easterling, D. R. United States Historical Climatology Network daily temperature and precipitation data (1871-1997). No. ORNL/CDIAC-118. Oak Ridge National Lab.(ORNL), Oak Ridge, TN (United States), 2002.
 6. Air quality:  Godahewa, R., Bergmeir, C., Webb, G., Hyndman, R., & Montero-Manso, P. (2020). KDD Cup Dataset (with Missing Values) (Version 4) [Dataset]. Zenodo. https://doi.org/10.5281/zenodo.4656719.
 
-Data:
-Data files are placed in 
-
-`./data/{data category}/{data files}`
-
-For example:
-
-`./data/climate/cleaned_df.csv`
 
 Installation:
-Please run 
-```shell
-create -n fl_imts python=3.8.20
-conda activate fl_imts
-pip -r install requirements.txt
-```
+Please run 'pip -r install requirements.txt'
 
 Experiment:
 The complete command is:
@@ -34,18 +21,15 @@ python run.py
     --graph_dir {graph_dir} \
     --log_dir {log_dir} \
     --output {output_dir} \
-    --save_dir {save_dir} \
 ```
 
 - `data_dir`: type=str,default='./data/', 'directory of the original data.'  
 - `graph_dir`,type=str,default='./graph/', 'directory of graphs.'
 - `output_dir`,type=str,default='./output/', 'directory of outputs.'
 - `log_dir`,type=str,default='./log/', 'directory of the transaction logs.'
-- `save_dir`,type=str,default='./train/', help = 'directory of the weights.'
 
 
 The configuration file is in `./model/Config.py`, you can change the parameters there.
-
 
 To get the forecasting result,
 please run:
@@ -54,23 +38,5 @@ please run:
 ```
 or
 ```shell
-'python run.py --data_dir ./data/activity/processed/data.pt'
+'python run.py --data_dir ./data/eeg/eeg.csv'
 ```
-
-
-If you want to train your own model, please remove the pretrained model `./train/{data category}/{pretrained models}`, and run 
-```shell
-'python run.py '
-```
-or
-```shell
-'python run.py --data_dir ./data/activity/processed/data.pt'
-```
-
-
-The source files downloaded in repository include:
-- `data_dir`= './data/activity/processed/data.pt'
-- `data_dir`='./data/physionet/processed/'
-- `data_dir`= './data/climate/data/processed/cleaned_df.csv'
-- `data_dir`= './data/uci/'
-

@@ -13,18 +13,18 @@ from sklearn.model_selection import train_test_split
 import utils
 from utils.utils import fl_convertion,reverse_normalization,reverse_standardation
 import keras
-import torch
 import model
 from model import Config, brnn
 from model.Config import brnn_config,fl_config
 import matplotlib.pyplot as plt
 import random
+import torch
 from framework import federated_learning_nn
 import gc
 
 #scaler = StandardScaler()
 scaler = MinMaxScaler()
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 config = fl_config()
 poolSize = config.poolSize
 trainSize = config.trainSize
@@ -32,42 +32,36 @@ testSize = config.testSize
 
 def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     gc.collect()
-    
-    
+    graph_dir = opt.graph_dir
+    save_dir = opt.save_dir
     data_category = opt.data_dir.split('/')[2]
     data_dir = './data/'+data_category+'/'
-    save_dir = opt.save_dir+data_category+'/'
-    graph_dir = opt.graph_dir+data_category+'/'
-    if os.path.exists(save_dir)==False:
-        os.makedirs(save_dir)
     print(data_dir)
-    print(save_dir)
 
-    impute_model_dir = save_dir+'impute.keras'
 
 
     impute_dir = data_dir+data_category+'_'+'impute.csv'
     print(impute_dir)
-    if os.path.exists(impute_dir)==True and os.path.exists(impute_model_dir)==True:
+    if os.path.exists(impute_dir)==True:
         missing_std = pd.read_csv(impute_dir)
     else:
+
         x_estimate = impute(x,imputed_value=-1)
         estimate = np.array(x_estimate)
         #estimate = x_estimate
         print(x)
         print(estimate)
-        df_imts_ = df_imts.replace(-1,np.nan).dropna()
-        imputed=np.nan
-        if len(df_imts_)==0:
-            df_imts_ = df_imts.replace(-1,0).dropna() 
-            imputed=0      
+        try:
+            df_imts_ = df_imts.replace(-1,np.nan).dropna()
+            imputed = np.nan
+        except Exception as e:
+            print(e)
+            df_imts_ = df_imts.replace(-1,0).dropna()
+            imputed = 0
         print(len(y.replace(-1,np.nan).dropna()))
         x_ = df_imts_[-start-1:-1]
         y_ = df_imts_[-start:]
-        #x_ = x.replace(-1,0).dropna().astype(np.float32)
-        #y_ = y.replace(-1,0).dropna().astype(np.float32)
-        #x_ = x.replace(-1,np.nan).dropna().astype(np.float32)
-        #y_ = y.replace(-1,np.nan).dropna().astype(np.float32)
+
         x_.to_csv(data_dir+data_category+'_'+'filtered.csv')
         print(len(x_))
         print(len(y_))
@@ -100,7 +94,6 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
 
 
 
-
             y_ = scaler.transform(np.array(y_))
             y_train_ = y_[:trainSize_real]
             y_test_ = y_[trainSize_real:trainSize_real+testSize_real]
@@ -125,7 +118,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                 os.makedirs(brnn_graph_dir)
             missing.to_csv(data_dir+data_category+'_'+'missing.csv')
             print('-------------------start imputation-------------------')
-
+            impute_model_dir = save_dir+'impute.keras'
             if os.path.exists(impute_model_dir)==True:
                 model_impute = keras.models.load_model(impute_model_dir)
             else:
@@ -142,7 +135,8 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                 for j in range(len(missing[i])):
                     print(i,j,missing[i][j])
                     if np.isnan([missing[i][j]]) == True:
-                        #print(i,missing[i][j])
+                        print(i,missing[i][j])
+                        
                         diff=[]
                         imputed_value=[]
                         if i<8:
@@ -186,12 +180,14 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                                 f.write(str(diff))
                                 f.close()
                             missing[i][j] = imputed_value[np.argmin(diff)]
-                        #print(i,missing[i][j])
+                        print(i,missing[i][j])
             del model_impute
-        if imputed==np.nan:
-            missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)
-        else:
+        print(imputed)
+
+        if imputed == 0:   
             missing_std = reverse_standardation(x.replace(-1,0).dropna().astype(np.float32), missing,cols_orig)
+        else:
+            missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)        
         #missing_std = missing
         print(missing_std)
         df_impute = pd.DataFrame(data=missing_std)
