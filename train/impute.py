@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import train_test_split
 import utils
 from utils.utils import fl_convertion,reverse_normalization,reverse_standardation
-import keras
+import tensorflow as tf
 import model
 from model import Config, brnn
 from model.Config import brnn_config,fl_config
@@ -22,20 +22,21 @@ import torch
 from framework import federated_learning_nn
 import gc
 
-#scaler = StandardScaler()
-scaler = MinMaxScaler()
+scaler = StandardScaler()
+#scaler = MinMaxScaler()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 config = fl_config()
 poolSize = config.poolSize
 trainSize = config.trainSize
 testSize = config.testSize
 
+
 def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     gc.collect()
     graph_dir = opt.graph_dir
     save_dir = opt.save_dir
     data_category = opt.data_dir.split('/')[2]
-    data_dir = './data/'+data_category+'/'
+    data_dir = './data/'+data_category+'/GRU/Decay/'
     print(data_dir)
 
 
@@ -120,7 +121,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
             print('-------------------start imputation-------------------')
             impute_model_dir = save_dir+'impute.keras'
             if os.path.exists(impute_model_dir)==True:
-                model_impute = keras.models.load_model(impute_model_dir)
+                model_impute = tf.keras.models.load_model(impute_model_dir)
             else:
                 client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train_,y_train_,x_test_,y_test_)
                 state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
@@ -170,16 +171,20 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
 
                                 #print(df_predict)
                                 missing_value=df_predict.values[-1][j]
+
                                 diff_ = abs(estimate[i][j]-missing_value)      
                                 diff.append(diff_)
                                 imputed_value.append(missing_value)
+                                iteration+=1
                             with open (data_dir+data_category+'_'+'impute.txt','a') as f:
                                 f.write(str(imputed_value))
                                 f.close()
                             with open (data_dir+data_category+'_'+'diff.txt','a') as f:
                                 f.write(str(diff))
                                 f.close()
+                            
                             missing[i][j] = imputed_value[np.argmin(diff)]
+                        
                         print(i,missing[i][j])
             del model_impute
         print(imputed)

@@ -15,7 +15,7 @@ from utils.utils import fl_convertion,reverse_normalization,reverse_standardatio
 import model
 from model import brnn
 from model.brnn import neuralNetwork
-import keras
+import tensorflow as tf
 import math
 import argparse
 import datetime
@@ -27,8 +27,8 @@ from framework import federated_learning_nn
 import gc
 
 
-scaler = MinMaxScaler()
-#scaler = StandardScaler()
+#scaler = MinMaxScaler()
+scaler = StandardScaler()
 config = fl_config()
 model_config = brnn_config()
 trainSize = config.trainSize
@@ -82,7 +82,7 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
     if os.path.exists(brnn_graph_dir)==False:
         os.makedirs(brnn_graph_dir)
     if os.path.exists(predict_model_dir)==True:
-        model_predict = keras.models.load_model(predict_model_dir)
+        model_predict = tf.keras.models.load_model(predict_model_dir)
     else:
         client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
         state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
