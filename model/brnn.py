@@ -14,11 +14,14 @@ import sklearn.preprocessing
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from tensorflow import keras
+import tensorflow_addons as tfa
+from tensorflow_addons.layers import SpectralNormalization
 #from keras.models import Sequential
 #from keras.layers import Dense,  GRU, Bidirectional, Activation, LSTM
 #from keras.layers import GlobalAveragePooling1D, BatchNormalization, TimeDistributed
 #from keras.callbacks import EarlyStopping, ModelCheckpoint
 #from keras.regularizers import L1L2
+#from keras.constraints import NonNeg, MaxNorm, MinMaxNorm, UnitNorm
 
 import numpy as np
 import math
@@ -32,16 +35,20 @@ import random
 import operator
 import gc
 import model
-from model import Config
+from model import Config_ablation_gru 
+import utils
+from utils import utils
 
-model_config = Config.brnn_config()
+model_config = Config_ablation_gru.brnn_config()
 
 # init data
 
 
 
+    
 
 class neuralNetwork():
+
     def myBiRNN(gru_units=model_config.gru_units,
                 dense_units=model_config.dense_units,
                 input_shape=model_config.input_shape,
@@ -72,6 +79,6 @@ class neuralNetwork():
         print (model.summary())
         
 
-        early_stopping=tf.keras.callbacks.EarlyStopping(monitor="var_loss", patience=patience)
+        #early_stopping=tf.keras.callbacks.EarlyStopping(monitor="var_loss", patience=patience)
         
         return model

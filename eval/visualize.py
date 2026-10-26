@@ -14,7 +14,8 @@ from sklearn.model_selection import train_test_split
 import model
 from model import brnn
 from model.brnn import neuralNetwork
-
+import utils
+from utils import utils
 import math
 import argparse
 import datetime
@@ -22,16 +23,11 @@ import random
 import time
 import matplotlib.pyplot as plt
 from framework import federated_learning_nn
-from model.Config import brnn_config,fl_config
+from model.Config_ablation_gru import brnn_config,fl_config
 import gc
 
-
-fl_config = fl_config()
-trainSize = fl_config.trainSize
-testSize = fl_config.testSize
-predictSize = fl_config.predictSize
-
-def visualize(actual,predict,timeSequence,start,cols_orig,opt):
+config = fl_config()
+def visualize(actual,predict,timeSequence,start,predictSize,cols_orig,opt):
     for n in range(len(cols_orig)):
         time.sleep(5)
         print(cols_orig[n])
@@ -72,8 +68,13 @@ def visualize(actual,predict,timeSequence,start,cols_orig,opt):
     plt.ylabel('Values')
     plt.legend(bbox_to_anchor=(0.5,1.15),fontsize='xx-small',ncol=4,loc='upper center')
     fig_name='test_scenario_all'+timeSequence+'_'+str(start)+'_brnn.png'
-    plt.savefig(opt.graph_dir+fig_name)
+    plt.savefig(fig_name)
     plt.close()  
+    return fig
+def visualize_bound(timeSequence,start,opt):
+    max_gaps=[i+1 for i in range(0,100)]
+
+    fig=utils.lower_bound_minimum_decay.visualize_t(max_gaps,config.decay,2000,timeSequence,start,opt.graph_dir)
     return fig
 def output(actual,predict,timeSequence,start,opt):
     df_result_actual=pd.DataFrame(data=actual)

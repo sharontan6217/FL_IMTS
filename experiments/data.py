@@ -1,13 +1,16 @@
 import pandas as pd
 import numpy as np
 import model
-from model.Config import fl_config
+from model.Config_ablation_gru import fl_config
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch
 from torch import load
 from torch.utils.data import Dataset,DataLoader
 import os
-
+import utils
+from utils.utils import federated_timegap
+import datetime
+from datetime import datetime,date
 import random
 import time
 
@@ -15,7 +18,10 @@ import gc
 
 config = fl_config()
 poolSize = config.poolSize
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device( "cpu")
+
+
 def airquality_dataLoad(data_dir):
     global cols_orig
     df_orig = pd.read_csv(data_dir,header=0)    
@@ -52,10 +58,10 @@ def airquality_dataLoad(data_dir):
 def mimicicu_dataLoad(data_dir):
     gc.collect()
     global cols_orig
-    orig = pd.read_csv(data_dir,header=0)
-    print(len(orig))
+    df_orig = pd.read_csv(data_dir,header=0)
+    print(len(df_orig))
     '''
-    df = df_orig[110000:130000]
+    df_orig = orig[110000:130000]
     
     item_list=[]
     for col in df_merged.columns:
@@ -63,7 +69,7 @@ def mimicicu_dataLoad(data_dir):
             item = col.split('_')[1]
             print(item)
             item_list.append(item)
-
+    
     
 
 
@@ -97,14 +103,21 @@ def mimicicu_dataLoad(data_dir):
                 #print(df_merged[['valuenum_50882']])
                 df[item]=df_merged[[col_name]]
     df.to_csv('mimic_preprocessed.csv',chunksize=10000)
-    
-    orig = df[-poolSize:]
-    
-
-    orig = orig.reset_index()
-    orig = orig.drop(['Unnamed: 0','index','50800','50802','50804','50818','50821'],axis=1)
-    orig.to_csv('orig_mimic.csv')
     '''
+
+    start = random.randint(0,len(df_orig)-1)
+    orig = df_orig[-start-poolSize:-start]
+    print(len(orig))
+    orig_ = orig
+    for col in orig_.columns:
+        orig_[col]=orig[col].replace(np.nan,0).astype(float)
+        if sum(orig_[col])==0:
+            orig=orig.drop(col,axis=1)
+    orig = orig.reset_index()
+    orig = orig.drop(['Unnamed: 0','index'],axis=1)
+
+    orig.to_csv('orig_mimic.csv')
+    
     print(orig)
     cols_orig = orig.columns
     print(cols_orig)
@@ -157,8 +170,6 @@ def uci_dataLoad(train_data_dir,test_data_dir):
     print(df.columns) 
     df = df[['tBodyAcc-mean-X','tBodyAcc-mean-Y','tBodyAcc-mean-Z','tBodyAcc-std-X','tBodyAcc-std-Y','tBodyAcc-std-Z']]
 
-    cols_orig = df.columns
-
     orig = df[-poolSize:]
     cols_orig = df.columns
     #y_orig = data[-poolSize:]
@@ -182,6 +193,7 @@ def eeg_dataLoad(data_dir):
                 value = df.loc[i,col]
                 data.append(value)
     '''
+
     orig = df[-poolSize:]
     #y_orig = data[-poolSize:]
     #x = np.array(x).reshape(-1,1)
@@ -261,7 +273,6 @@ def physionet_dataLoad(data_dir):
         df=df.drop(col,axis=1)
     
     cols_orig = df.columns
-
     orig = df[-poolSize:]
 
     return orig,cols_orig
@@ -270,7 +281,6 @@ def activity_dataLoad(data_dir):
     df= df_orig.sort_values(['time_stamp','activity_category'])[['data_1','data_2','data_3']]
     print(df)
     cols_orig = df.columns
-
     orig = df[-poolSize:]
     print(orig)
     return orig,cols_orig
@@ -348,9 +358,8 @@ def climate_dataLoad(data_dir):
     df_orig = pd.read_csv(data_dir,header=0)    
     #df_merged = df_merged.replace('-9999',np.nan)
     #df_merged = df_merged.dropna()
-    df = df_orig.drop(['DATE','COOP_ID','TIME_STAMP'],axis=1)
+    df = df_orig.drop(['COOP_ID','TIME_STAMP'],axis=1)
 
-    print(len(df))
     '''
     unimputed = df[-randint-poolSize:-randint]
     for col in df.columns:
@@ -368,6 +377,7 @@ def climate_dataLoad(data_dir):
                     df.loc[i,col]  =np.mean(df.loc[i-8:i-1,col])
     '''
     orig = df[-poolSize:]
+    
     print(orig)
     cols_orig = df.columns
     print(cols_orig)
@@ -408,21 +418,28 @@ def climate_dataLoad_samples(data_dir):
     df = pd.DataFrame()
     for element in elements:
         df['COOP_ID'] = df_sample['COOP_ID']
-        df['YEAR'] = df_sample['YEAR']
-        df['MONTH'] = df_sample['MONTH']
-        df['DAY'] = df_sample['DAY']
-        df[element] = df_sample['VALUE_'+element]
+        df['YEAR'] = df_sample['YEAR'].astype(int)
+        df['MONTH'] = df_sample['MONTH'].astype(int)
+        df['DAY'] = df_sample['DAY'].astype(int)
+        df['DATE'] = pd.to_datetime({'year':df['YEAR'],'month':df['MONTH'],'day':df['DAY']})
+        df[element] = df_sample['VALUE_'+element].astype(float)
     df = df.sort_values(['COOP_ID','YEAR','MONTH','DAY']).reset_index()
     df.to_csv('clean.csv')
 
 
+    gaps = federated_timegap(df)
+    df = df.drop(['index','COOP_ID','YEAR','MONTH','DAY','DATE'],axis=1)
+    cols_orig = df.columns
+    df['TIMEGAP']=gaps
+
 
     print(df)
-    df = df.drop(['index','COOP_ID','YEAR','MONTH','DAY'],axis=1)
 
     orig = df[-poolSize:]
+
+    #orig=df
     print(orig)
-    cols_orig = df.columns
+
     print(cols_orig)
     #y_orig = data[-poolSize:]
     #x = np.array(x).reshape(-1,1)
@@ -445,6 +462,7 @@ def test_dataLoad(data_dir):
                 value = df.loc[i,col]
                 data.append(value)
     '''
+
     orig = df[-poolSize:]
     #y_orig = data[-poolSize:]
     #x = np.array(x).reshape(-1,1)
@@ -467,6 +485,7 @@ def finance_dataLoad(data_dir):
                 value = df.loc[i,col]
                 data.append(value)
     '''
+
     orig = df[-poolSize:]
     #y_orig = data[-poolSize:]
     #x = np.array(x).reshape(-1,1)

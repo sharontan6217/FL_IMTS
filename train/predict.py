@@ -22,22 +22,20 @@ import datetime
 import random
 import time
 import matplotlib.pyplot as plt
-from model.Config import brnn_config,fl_config
+from model.Config_ablation_gru import brnn_config,fl_config
 from framework import federated_learning_nn
 import gc
 
 
+
 #scaler = MinMaxScaler()
 scaler = StandardScaler()
-config = fl_config()
-model_config = brnn_config()
-trainSize = config.trainSize
-testSize = config.testSize
-predictSize = config.predictSize
 
 
 
-def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,opt):
+
+
+def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,trainSize,testSize,predictSize,opt):
     gc.collect()
     len_cols = len(cols_orig)
 
@@ -77,16 +75,16 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
         f.write(str(y_test))
         f.close()
     graph_dir = opt.graph_dir
-    brnn_graph_dir=graph_dir+'accuracy/'
+    brnn_graph_dir=graph_dir+'accuracy/predict/'
     predict_model_dir = opt.save_dir+'train.keras'
     if os.path.exists(brnn_graph_dir)==False:
         os.makedirs(brnn_graph_dir)
     if os.path.exists(predict_model_dir)==True:
         model_predict = tf.keras.models.load_model(predict_model_dir)
     else:
-        client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
-        state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
-        model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
+        client_datasets,test_datasets=federated_learning_nn.dataProcess_predict(x_train,y_train,x_test,y_test)
+        state,metrics,loss,mae= federated_learning_nn.train(client_datasets)
+        model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state)
         model_predict.save(opt.save_dir+'train.keras')
         fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
     x_test_fl = fl_convertion(x_test)
@@ -101,8 +99,8 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
             #y_predict,model_predict = selfTrainingClassifier.selfTrainingClassifier(model_predict,x_train,y_train,x_test,y_test)
             y_predict_fl = model_predict.predict(x_test_fl)
             y_predict_fl = y_predict_fl.astype(np.float32)
-            print('---------------------predicted y is-------------------')
-            print(y_predict_fl)
+            #print('---------------------predicted y is-------------------')
+            #print(y_predict_fl)
         else:
             #client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_actual,y_predict_fl)
             #state,metrics = federated_learning_nn.train(client_datasets)
@@ -110,8 +108,8 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
             #y_predict,model_predict = selfTrainingClassifier.selfTrainingClassifier(model_predict,x_train,y_train,x_actual,y_predict)
             x_actual_fl = fl_convertion(x_actual)
             y_predict_fl = model_predict.predict(x_actual_fl)
-            print('---------------------predicted y is-------------------')
-            print(y_predict_fl)
+            #print('---------------------predicted y is-------------------')
+            #print(y_predict_fl)
             y_predict_fl = y_predict_fl.astype(np.float32)
 
         df_predict = pd.DataFrame()
@@ -172,15 +170,16 @@ def FL_train_nn(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSe
     print(y_predict)
     del x_new
     #scale_y= scaler.fit(y_impute)
-    y_actual = scaler_y.transform(y_actual)
-    y_predict = scaler_y.transform(y_predict)
-    
+    #y_actual = scaler_y.transform(y_actual)
+    #y_predict = scaler_y.transform(y_predict)
+    #y_actual = scaler.fit_transform(y_actual)
+    #y_predict = scaler.fit_transform(y_predict)    
     print('start is: ',start)
 
     return y_predict, y_actual
 
 
-def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,opt):
+def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_impute,cols_orig,timeSequence,start,trainSize,testSize,opt):
     
 
     gc.collect()
@@ -227,9 +226,9 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_impute,cols
     if os.path.exists(brnn_graph_dir)==False:
         os.makedirs(brnn_graph_dir)
     client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train,y_train,x_test,y_test)
-    state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
+    state,metrics,loss,gradients = federated_learning_nn.train(client_datasets)
     model_predict,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
-    fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
+    fig = federated_learning_nn.fl_visualize(loss,gradients,timeSequence,start,brnn_graph_dir)
     x_test_fl = fl_convertion(x_test)
     x_actual1 = x_total_impute[trainSize:trainSize+testSize]
     
@@ -309,8 +308,8 @@ def FL_train_predict_window(x_train,y_train,x_test,y_test,y_actual,x_impute,cols
     print(y_predict)
     del x_new
     #scale_y= scaler.fit(y_impute)
-    y_actual = scaler_y.transform(y_actual)
-    y_predict = scaler_y.transform(y_predict)
+    #y_actual = scaler_y.transform(y_actual)
+    #y_predict = scaler_y.transform(y_predict)
     
     print('start is: ',start)
 

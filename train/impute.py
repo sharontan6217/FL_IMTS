@@ -14,30 +14,35 @@ import utils
 from utils.utils import fl_convertion,reverse_normalization,reverse_standardation
 import tensorflow as tf
 import model
-from model import Config, brnn
-from model.Config import brnn_config,fl_config
+from model import Config_ablation_gru, brnn
+from model.Config_ablation_gru import brnn_config,fl_config
 import matplotlib.pyplot as plt
 import random
 import torch
 from framework import federated_learning_nn
 import gc
 
-scaler = StandardScaler()
-#scaler = MinMaxScaler()
+#scaler = StandardScaler()
+scaler = MinMaxScaler()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-config = fl_config()
-poolSize = config.poolSize
-trainSize = config.trainSize
-testSize = config.testSize
 
 
-def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
+
+def brnn_impute(x,y,df_imts,start,trainSize,testSize,timeSequence,opt,cols_orig,na_replacement):
     gc.collect()
+    timegaps_x = x['TIMEGAP']
+    timegaps_y = y['TIMEGAP']
+    x = x.drop(['TIMEGAP'],axis=1)
+    y = y.drop(['TIMEGAP'],axis=1)
+    df_imts = df_imts.drop(['TIMEGAP'],axis=1)
+    #cols_orig = df_imts.columns
     graph_dir = opt.graph_dir
     save_dir = opt.save_dir
     data_category = opt.data_dir.split('/')[2]
-    data_dir = './data/'+data_category+'/GRU/Decay/'
+    data_dir = './data/'+data_category+'/GRU/medium dataset(2000-1000)/'
     print(data_dir)
+    if os.path.exists(data_dir)==False:
+        os.makedirs(data_dir)
 
 
 
@@ -47,19 +52,30 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
         missing_std = pd.read_csv(impute_dir)
     else:
 
-        x_estimate = impute(x,imputed_value=-1)
+        x_estimate = impute(x,na_replacement)
         estimate = np.array(x_estimate)
         #estimate = x_estimate
         print(x)
         print(estimate)
-        try:
-            df_imts_ = df_imts.replace(-1,np.nan).dropna()
-            imputed = np.nan
-        except Exception as e:
-            print(e)
-            df_imts_ = df_imts.replace(-1,0).dropna()
+        #df_imts_ = df_imts.replace(na_replacement,np.nan).dropna()
+        #imputed = np.nan
+        x.to_csv(data_dir+data_category+'_'+'orig_before.csv')
+        df_imts_ = df_imts.replace(na_replacement,np.nan).dropna()
+        print('length of imts after dropna: ', len(df_imts_))
+        print(df_imts_)
+        print(len(df_imts))
+        #df_imts_ = df_imts.replace(na_replacement,0).dropna()
+        imputed = np.nan
+        scaler = MinMaxScaler()
+        if len(df_imts_)<0.2*len(df_imts):
+            df_imts_ = df_imts.replace(na_replacement,0).dropna()
             imputed = 0
-        print(len(y.replace(-1,np.nan).dropna()))
+            scaler=StandardScaler()
+        print(scaler)
+        print(imputed)
+        #df_imts_ = df_imts.replace(na_replacement,0).dropna()
+        #df_imts_ = df_imts.replace(na_replacement,np.nan).dropna()
+        print(len(y.replace(na_replacement,np.nan).dropna()))
         x_ = df_imts_[-start-1:-1]
         y_ = df_imts_[-start:]
 
@@ -69,18 +85,20 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
         trainSize_real = int(len(x_)*0.8)
         testSize_real = len(x_)-trainSize_real
 
+        
+        df_missing = x.replace(na_replacement,np.nan)
+        df_missing_y= y.replace(na_replacement,np.nan)
+        df_missing.to_csv('missing.csv')
 
-
-        df_missing = x.replace(-1,np.nan)
-        df_missing_y= y.replace(-1,np.nan)
         missing = df_missing.copy()
         missing_y = df_missing_y.copy()
-        if any(missing.isnull())==True:
-            
+
+        if any(df_missing.isnull())==True:
+
             for col in missing.columns:
                 non_null_mask = missing[col].notna()
                 missing.loc[non_null_mask,col]=scaler.fit_transform(missing.loc[non_null_mask,col].values.reshape(-1,1)).flatten()
-            
+                
             for col in missing_y.columns:
                 non_null_mask = missing_y[col].notna()
                 missing_y.loc[non_null_mask,col]=scaler.fit_transform(missing_y.loc[non_null_mask,col].values.reshape(-1,1)).flatten()
@@ -91,7 +109,8 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
             estimate = scaler.transform(x_estimate)
             x_train_ = x_[:trainSize_real]
             x_test_ = x_[trainSize_real:trainSize_real+testSize_real]
-
+            timegaps_x_train = timegaps_x[:trainSize_real]
+            timegaps_y_train = timegaps_y[:trainSize_real]
 
 
 
@@ -114,20 +133,21 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                 f.close()
             if 'index' in x.columns:
                 x = x.drop(('index'),axis=1)
-            brnn_graph_dir=graph_dir+'accuracy/'
+            brnn_graph_dir=graph_dir+'accuracy/impute/'
             if os.path.exists(brnn_graph_dir)==False:
                 os.makedirs(brnn_graph_dir)
             missing.to_csv(data_dir+data_category+'_'+'missing.csv')
+
             print('-------------------start imputation-------------------')
             impute_model_dir = save_dir+'impute.keras'
             if os.path.exists(impute_model_dir)==True:
                 model_impute = tf.keras.models.load_model(impute_model_dir)
             else:
-                client_datasets,test_datasets=federated_learning_nn.dataProcess(x_train_,y_train_,x_test_,y_test_)
+                client_datasets,test_datasets=federated_learning_nn.dataProcess_impute(x_train_,y_train_,x_test_,y_test_,timegaps_x_train,timegaps_y_train)
                 state,metrics,loss,mae = federated_learning_nn.train(client_datasets)
-                model_impute,test_metrics=federated_learning_nn.eval(test_datasets,state,metrics)
-                model_impute.save(save_dir+'impute.keras')
-                fig = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
+                model_impute,test_metrics=federated_learning_nn.eval(test_datasets,state)
+                #model_impute.save(save_dir+'impute.keras')
+                fig1 = federated_learning_nn.fl_visualize(loss,mae,timeSequence,start,brnn_graph_dir)
             print(len(estimate),len(missing))
             missing = np.array(missing)
 
@@ -136,6 +156,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                 for j in range(len(missing[i])):
                     print(i,j,missing[i][j])
                     if np.isnan([missing[i][j]]) == True:
+                        print('missing cell is:')
                         print(i,missing[i][j])
                         
                         diff=[]
@@ -143,6 +164,26 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                         if i<8:
                             missing[i][j]=estimate[i][j]
                         else:
+                            pseudo_x_ = missing[:i-1]
+                            length = len(pseudo_x_)
+                            #print(length)
+                            x_train_fl_ = fl_convertion(pseudo_x_).astype(np.float32)    
+                            pseudo_y_ = model_impute.predict(x_train_fl_).astype(np.float32) # Generate pseudo-labels
+
+                            #print(len(pseudo_y_))
+                            df_predict = pd.DataFrame()
+
+                            for n in range(len(cols_orig)):
+                                col_name = cols_orig[n]
+                                if n==0:
+                                    df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[:length]
+                                else:
+                                    df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
+                                
+                            #print(df_predict)
+                            missing[i][j]=df_predict.values[-1][j]
+
+                            
                             for iteration in range(5):  # Run 5 iterations
                                 pseudo_x_ = missing[:i-1]
                                 length = len(pseudo_x_)
@@ -152,12 +193,12 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                                 #print(len(pseudo_y_))
                                 df_predict = pd.DataFrame()
                                 #print(len(cols_orig))
-                                '''
-                                df_predict['P4']=np.array(pseudo_y_ ).reshape(-1,)[:length]
-                                df_predict['Cz']=np.array(pseudo_y_ ).reshape(-1,)[length:length*2]
-                                df_predict['F8']=np.array(pseudo_y_ ).reshape(-1,)[length*2:length*3]
-                                df_predict['T7']=np.array(pseudo_y_ ).reshape(-1,)[length*3:]
-                                '''
+                                
+                                #df_predict['P4']=np.array(pseudo_y_ ).reshape(-1,)[:length]
+                                #df_predict['Cz']=np.array(pseudo_y_ ).reshape(-1,)[length:length*2]
+                                #df_predict['F8']=np.array(pseudo_y_ ).reshape(-1,)[length*2:length*3]
+                                #df_predict['T7']=np.array(pseudo_y_ ).reshape(-1,)[length*3:]
+                                
                                 for n in range(len(cols_orig)):
                                     #print(cols_orig[n])
                                     col_name = cols_orig[n]
@@ -168,7 +209,7 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                                         #print(pseudo_y_)
                                         #print(np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)])
                                         df_predict[col_name]=np.array(pseudo_y_ ).reshape(-1,)[length*n:length*(n+1)]
-
+                                
                                 #print(df_predict)
                                 missing_value=df_predict.values[-1][j]
 
@@ -184,24 +225,26 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
                                 f.close()
                             
                             missing[i][j] = imputed_value[np.argmin(diff)]
-                        
+                            
                         print(i,missing[i][j])
-            del model_impute
-        print(imputed)
-
+            del model_impute  
+        
         if imputed == 0:   
-            missing_std = reverse_standardation(x.replace(-1,0).dropna().astype(np.float32), missing,cols_orig)
+        
+            missing_std = reverse_standardation(x, missing,cols_orig,na_replacement)
         else:
-            missing_std = reverse_normalization(x.replace(-1,np.nan).dropna().astype(np.float32), missing,cols_orig)        
+            missing_std = reverse_normalization(x, missing,cols_orig,na_replacement)
+        
+        x.to_csv(data_dir+data_category+'_'+'orig_after.csv')
+        #missing_std = reverse_normalization(x, missing,cols_orig)        
+        #missing_std = reverse_standardation(x, missing,cols_orig)
         #missing_std = missing
+        #missing_std = estimate
         print(missing_std)
         df_impute = pd.DataFrame(data=missing_std)
         df_impute.to_csv(impute_dir,index=False)
-
-    
-
-
-
+        
+    #missing_std = estimate
     x_train = missing_std[:trainSize].astype(np.float32)
     y_train = missing_std[1:trainSize+1].astype(np.float32)
     x_test = missing_std[trainSize:trainSize+testSize].astype(np.float32)
@@ -214,7 +257,8 @@ def brnn_impute(x,y,df_imts,start,timeSequence,opt,cols_orig):
     
 
     return x_train,y_train,x_test,y_test,x_impute
-def impute(df,imputed_value):
+
+def impute(df,na_replacement):
     if 'index' in df.columns:
         df = df.drop(('index'),axis=1)
     df = df.reset_index()
@@ -222,16 +266,16 @@ def impute(df,imputed_value):
         for i in range(len(df)):
             try:
                 if i==0:
-                    estimate_matrix = [item for item in df.loc[i:,col] if item!=imputed_value ][:7]
+                    estimate_matrix = [item for item in df.loc[i:,col] if item!=na_replacement ][:7]
                     df.loc[i,col]  =np.mean(estimate_matrix)   
                 else:  
-                    if df.loc[i,col]==imputed_value:
-                        if df.loc[i-1,col]!=imputed_value and df.loc[i+1,col]!=imputed_value:
-                            matrix_before =  [item for item in df.loc[:i-1,col] if item !=imputed_value ][-3:]
-                            matrix_after =  [item for item in df.loc[i+1:,col] if item !=imputed_value ][:3]
+                    if df.loc[i,col]==na_replacement:
+                        if df.loc[i-1,col]!=na_replacement and df.loc[i+1,col]!=na_replacement:
+                            matrix_before =  [item for item in df.loc[:i-1,col] if item !=na_replacement ][-3:]
+                            matrix_after =  [item for item in df.loc[i+1:,col] if item !=na_replacement ][:3]
                             df.loc[i,col] = 0.8*np.mean(matrix_before)+1.2*np.mean(matrix_after)
                         else:
-                            estimate_matrix = [item for item in df.loc[max(0,i-1):,col] if item!=imputed_value ][:7]
+                            estimate_matrix = [item for item in df.loc[max(0,i-1):,col] if item!=na_replacement ][:7]
                             df.loc[i,col]  =np.mean(estimate_matrix)     
                     else:
                         continue

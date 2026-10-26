@@ -33,6 +33,10 @@ import gc
 
 def evaluation(actual,predict,opt):
     valid_indice = ~np.isnan(actual)
+
+    print(len(actual))
+    print(len(predict))
+
     actual = actual[valid_indice]
     predict = predict[valid_indice]
     #f1score = f1_score(actual,predict,average='macro')
